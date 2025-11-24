@@ -26,11 +26,11 @@ async def get_products(
 @router.get("/products/search", response_model=List[Product])
 async def search_products(q: str = Query(..., min_length=3)):
     """
-    Search for products by a query string in their name or description.
+    Search for products by a query string in their ID, name, or description.
     """
     search_results = [
         p for p in PRODUCTS
-        if q.lower() in p['name'].lower() or q.lower() in p['description'].lower()
+        if q.lower() in p['id'].lower() or q.lower() in p['name'].lower() or q.lower() in p['description'].lower()
     ]
     return search_results
 
