@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:8000
+@productId = e904b561-bd98-48b1-a6bc-c3b18c3dc38f
+
+
+### Get all products
+
+GET {{baseUrl}}/products HTTP/1.1
+
+### Get products with filters (e.g., size and color)
+
+GET {{baseUrl}}/products?size=M
+  &color=Red HTTP/1.1
+
+### Get products with another filter (e.g., category)
+
+GET {{baseUrl}}/products?category=Apparel HTTP/1.1
+
+### Search for products by query string
+
+GET {{baseUrl}}/products/search?q=fancy HTTP/1.1
+
+### Get a single product by ID (replace with a real product ID from /products)
+
+# You can get a product ID by running the "Get all products" request above
+GET {{baseUrl}}/products/PRD#1 HTTP/1.1
