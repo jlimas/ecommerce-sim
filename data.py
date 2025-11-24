@@ -11,7 +11,7 @@ def generate_products(num_products=20):
 
     for i in range(num_products):
         product = {
-            "id": f"PRD#{i+1}",
+            "id": f"PRD_{i+1}",
             "name": fake.bs().title() + " " + fake.word().capitalize(),
             "description": fake.catch_phrase(),
             "price": round(random.uniform(10.0, 200.0), 2),

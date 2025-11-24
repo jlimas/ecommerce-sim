@@ -22,4 +22,4 @@ GET {{baseUrl}}/products/search?q=fancy HTTP/1.1
 ### Get a single product by ID (replace with a real product ID from /products)
 
 # You can get a product ID by running the "Get all products" request above
-GET {{baseUrl}}/products/PRD#1 HTTP/1.1
+GET {{baseUrl}}/products/PRD_1 HTTP/1.1
