@@ -29,7 +29,7 @@ install:
 
 run:
 	@echo "Starting FastAPI server with uvicorn..."
-	@uvicorn main:app --reload
+	@uv run uvicorn main:app --reload
 
 docker-build:
 	@echo "Building Docker image: $(IMAGE_NAME)..."
