@@ -6,7 +6,7 @@ VENV_DIR = .venv
 IMAGE_NAME = ecommerce-sim
 CONTAINER_NAME = ecommerce-sim-app
 
-.PHONY: help install run docker-build docker-run docker-stop clean
+.PHONY: help install run format lint docker-build docker-run docker-stop clean pre-commit
 
 help:
 	@echo "Makefile for managing the ecommerce-sim project"
@@ -18,6 +18,9 @@ help:
 	@echo "  make docker-build   Build the Docker image"
 	@echo "  make docker-run     Run the application inside a Docker container"
 	@echo "  make docker-stop    Stop and remove the Docker container"
+	@echo "  make format         Format code with ruff"
+	@echo "  make lint           Lint code with ruff"
+	@echo "  make pre-commit     Run pre-commit hooks against all files"
 	@echo "  make clean          Remove the virtual environment and __pycache__ directories"
 
 
@@ -26,10 +29,25 @@ install:
 	@uv venv
 	@echo "Installing dependencies from requirements.txt..."
 	@uv pip install -r requirements.txt
+	@echo "Installing pre-commit hooks..."
+	@uv run pre-commit install
 
 run:
 	@echo "Starting FastAPI server with uvicorn..."
 	@uv run uvicorn main:app --reload
+
+format:
+	@echo "Formatting code with ruff..."
+	@uv run ruff format .
+	@uv run ruff check --fix .
+
+lint:
+	@echo "Linting code with ruff..."
+	@uv run ruff check .
+
+pre-commit:
+	@echo "Running pre-commit hooks on all files..."
+	@uv run pre-commit run --all-files
 
 docker-build:
 	@echo "Building Docker image: $(IMAGE_NAME)..."

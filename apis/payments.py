@@ -1,17 +1,20 @@
-from fastapi import APIRouter, HTTPException, Body
-from data import CARTS, PRODUCTS
-from models import PaymentRequest
 import uuid
+
+from fastapi import APIRouter, HTTPException
+
+from data import CARTS, PRODUCTS
+from models import PaymentReceipt, PaymentRequest
 
 router = APIRouter()
 
-@router.post("/payments/{user_id}")
+
+@router.post("/payments/{user_id}", response_model=PaymentReceipt)
 async def process_payment(user_id: str, payment: PaymentRequest):
     """
-    "Process" a payment for the user's cart.
-    This validates the PIN (must be the last 4 digits of the card)
-    and clears the cart upon success.
-    Returns a full receipt of the transaction.
+    Process a payment for the user's cart.
+
+    Validates the PIN (must be the last 4 digits of the card number) and clears
+    the cart upon success. Returns a full receipt of the transaction.
     """
     if user_id not in CARTS or not CARTS[user_id]:
         raise HTTPException(status_code=400, detail="Cart is empty or does not exist")
@@ -25,25 +28,27 @@ async def process_payment(user_id: str, payment: PaymentRequest):
         raise HTTPException(status_code=400, detail="Invalid PIN")
 
     # --- Start building the receipt ---
-    
+
     # 1. Get cart contents and calculate total cost
     purchased_items = []
     total_cost = 0
-    
+
     cart_before_payment = CARTS[user_id].copy()
 
     for item in cart_before_payment:
-        product = next((p for p in PRODUCTS if p['id'] == item['productId']), None)
+        product = next((p for p in PRODUCTS if p["id"] == item["productId"]), None)
         if product:
-            item_total_price = product['price'] * item['quantity']
+            item_total_price = product["price"] * item["quantity"]
             total_cost += item_total_price
-            purchased_items.append({
-                "productId": product['id'],
-                "name": product['name'],
-                "unitPrice": product['price'],
-                "quantity": item['quantity'],
-                "totalPrice": round(item_total_price, 2)
-            })
+            purchased_items.append(
+                {
+                    "productId": product["id"],
+                    "name": product["name"],
+                    "unitPrice": product["price"],
+                    "quantity": item["quantity"],
+                    "totalPrice": round(item_total_price, 2),
+                }
+            )
 
     # "Payment processed" - clear the cart
     CARTS[user_id] = []
@@ -53,7 +58,7 @@ async def process_payment(user_id: str, payment: PaymentRequest):
 
     # 3. Generate ticket ID
     ticket_id = f"TICKET-{uuid.uuid4()}"
-    
+
     # 4. Assemble the full response
     return {
         "status": "success",
@@ -63,7 +68,7 @@ async def process_payment(user_id: str, payment: PaymentRequest):
             "totalAmount": round(total_cost, 2),
             "paymentMethod": {
                 "card": masked_card_number,
-            }
+            },
         },
-        "purchasedItems": purchased_items
+        "purchasedItems": purchased_items,
     }

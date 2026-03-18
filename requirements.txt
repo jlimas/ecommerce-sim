@@ -1,4 +1,6 @@
 annotated-doc==0.0.4
+pre-commit==4.5.1
+ruff==0.15.6
 annotated-types==0.7.0
 anyio==4.11.0
 click==8.3.1

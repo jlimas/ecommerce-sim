@@ -4,6 +4,9 @@
 
 - **Install dependencies:** `make install` (uses `uv` for package management)
 - **Run development server:** `make run` (hot-reloading on port 8000)
+- **Format code:** `make format` (runs `ruff format` + `ruff check --fix`)
+- **Lint code:** `make lint` (runs `ruff check`)
+- **Run pre-commit hooks:** `make pre-commit` (runs all hooks against every file)
 - **Build Docker image:** `make docker-build`
 - **Run Docker container:** `make docker-run`
 - **Clean environment:** `make clean`
