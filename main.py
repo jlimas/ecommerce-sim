@@ -14,6 +14,6 @@ app.include_router(cart.router, tags=["Cart"])
 app.include_router(payments.router, tags=["Payments"])
 
 
-@app.get("/", tags=["Root"])
+@app.get("/", include_in_schema=False)
 async def read_root():
     return {"message": "Welcome to the Ecommerce Simulation API!"}
