@@ -3,6 +3,13 @@ from typing import List
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class RootResponse(BaseModel):
+    message: str
+    openapi_url: str = Field(alias="openapiUrl", description="Path to the OpenAPI schema")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ProductAttributes(BaseModel):
     size: str = Field(..., description="Size of the product (e.g. XS, S, M, L, XL)")
     color: str = Field(..., description="Color of the product (e.g. Red, Blue, Green)")
