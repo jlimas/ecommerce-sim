@@ -1,40 +1,26 @@
-# ---- Builder Stage ----
-# This stage installs dependencies into a virtual environment using uv.
-FROM python:3.11-slim as builder
+# syntax=docker/dockerfile:1
 
-# Install uv
-RUN pip install uv
+FROM python:3.15.2-slim AS builder
 
-# Create a virtual environment
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# Copy only the dependency file and install dependencies
 WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /usr/local/bin/uv
+RUN uv venv /opt/venv
 COPY requirements.txt .
-# Install dependencies using uv
-RUN uv pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --link-mode=copy --python /opt/venv/bin/python -r requirements.txt
 
-# ---- Final Stage ----
-# This stage creates the final, smaller image.
-FROM python:3.11-slim
+FROM python:3.15.2-slim AS runtime
 
-# Set working directory
 WORKDIR /app
-
-# Copy the virtual environment with dependencies from the builder stage
-COPY --from=builder /opt/venv /opt/venv
-
-# Copy the application code
-COPY . .
-
-# Set the path to use the virtual environment's Python and packages
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Expose the port the app runs on
+LABEL org.opencontainers.image.title="Tienda de la Esquina"
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup appuser
+COPY --link --from=builder /opt/venv /opt/venv
+COPY --link --chown=1001:1001 main.py models.py data.py api_documentation.py ./
+COPY --link --chown=1001:1001 apis/ ./apis/
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+USER appuser
 EXPOSE 8000
-
-# Command to run the application
-# Use --host 0.0.0.0 to make it accessible from outside the container
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

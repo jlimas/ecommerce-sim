@@ -1,25 +1,17 @@
 @baseUrl = http://localhost:8000
-@productId = e904b561-bd98-48b1-a6bc-c3b18c3dc38f
+@productId = PRD_1
 
-
-### Get all products
-
+### Consultar todos los productos (precios en MXN)
 GET {{baseUrl}}/products HTTP/1.1
 
-### Get products with filters (e.g., size and color)
+### Filtrar por marca y presentación
+GET {{baseUrl}}/products?brand=Coca-Cola&presentation=600%20ml HTTP/1.1
 
-GET {{baseUrl}}/products?size=M
-  &color=Red HTTP/1.1
+### Filtrar por categoría
+GET {{baseUrl}}/products?category=Bebidas HTTP/1.1
 
-### Get products with another filter (e.g., category)
+### Buscar productos sin distinguir acentos
+GET {{baseUrl}}/products/search?q=cafe HTTP/1.1
 
-GET {{baseUrl}}/products?category=Apparel HTTP/1.1
-
-### Search for products by query string
-
-GET {{baseUrl}}/products/search?q=fancy HTTP/1.1
-
-### Get a single product by ID (replace with a real product ID from /products)
-
-# You can get a product ID by running the "Get all products" request above
-GET {{baseUrl}}/products/PRD_1 HTTP/1.1
+### Consultar un producto
+GET {{baseUrl}}/products/{{productId}} HTTP/1.1

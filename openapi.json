@@ -1,0 +1,1223 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tienda de la Esquina",
+    "description": "\n## Tienda de la Esquina\n\nCatálogo de una tienda de conveniencia en México: bebidas, botanas, galletas, dulces,\nlácteos, abarrotes, café, comida preparada y artículos de higiene y hogar.\nLos nombres, descripciones y mensajes comerciales están en español.\n\n## Guía de integración para clientes y agentes\n\n1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar\n   por nombre, descripción o identificador. Usa los `id` devueltos; no inventes identificadores.\n2. **Elegir una presentación:** compara `attributes.brand`, `attributes.presentation`,\n   `price` y `currency`. Una botella de 600 ml es una unidad, no 600 unidades.\n   Si hay varias opciones, conserva la presentación solicitada por el cliente.\n3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como\n   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.\n   No uses correos, teléfonos u otros datos personales como identificadores.\n4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.\n   Consulta `getProduct` para obtener el nombre, la presentación y el precio de cada referencia.\n5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`\n   **reemplaza** la cantidad. Para quitar un artículo usa `removeFromCart` o una cantidad\n   menor o igual a cero en `updateCartItem`. Las respuestas contienen el carrito completo actualizado.\n6. **Revisar la compra:** muestra productos, presentaciones, cantidades y total en MXN.\n   Respeta las autorizaciones y confirmaciones de compra de la aplicación cliente.\n7. **Completar la compra:** consulta la documentación de `payCart` para los requisitos del pago.\n   Un HTTP 200 devuelve el recibo y vacía el carrito. Conserva el recibo en el cliente:\n   no hay una ruta para recuperarlo después.\n\n### Ejemplo de recorrido\n\n```http\nGET /products/search?q=Coca-Cola\nGET /cart/cliente123\nPOST /cart/cliente123\nContent-Type: application/json\n\n{\"productId\":\"PRD_1\",\"quantity\":2}\n```\n\nEl último paso agrega dos botellas de Coca-Cola Original de 600 ml a $22.00 MXN cada una.\nEn un carrito inicialmente vacío, el subtotal es **$44.00 MXN**.\nSi ya había una unidad, `POST` deja tres; usa `PUT /cart/cliente123/PRD_1`\ncon `{\"quantity\":2}` si deseas exactamente dos.\n\n## Contrato de datos y moneda\n\n- Solicitudes y respuestas: JSON; envía `Content-Type: application/json` cuando haya cuerpo.\n- Las rutas y claves JSON están en inglés y distinguen mayúsculas: `productId`, `creditCardNumber`,\n  `totalAmount`, `paymentSummary`, `purchasedItems`. Los valores comerciales están en español.\n- **Todos los importes son pesos mexicanos (MXN), nunca USD ni centavos.**\n  `price: 19.5` equivale a $19.50 MXN. No multipliques ni dividas por 100 al enviar o leer precios.\n- `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen\n  también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.\n- Total de una partida = precio unitario × cantidad; total de compra = suma de las partidas.\n  Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.\n  El recibo devuelto por el servidor es la referencia final de la compra.\n- No hay conversión de moneda, descuentos, envío ni recargos calculados por estas rutas.\n  No se proporciona un desglose fiscal; no inventes impuestos o cargos adicionales.\n- El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.\n- Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.\n\n## Búsqueda y filtros\n\n`listProducts` permite combinar `brand`, `presentation` y `category` mediante **AND**.\nLos filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios\nadicionales ni diferencias de unidades. Usa valores del catálogo: `600 ml`, no `0.6 L`.\nCodifica espacios y acentos en la URL con la biblioteca HTTP del cliente.\n\n`searchProducts` hace búsqueda parcial por `id`, `name` y `description`, sin distinguir\nmayúsculas ni acentos. Exige al menos tres caracteres; `cafe` encuentra `Café`.\nNo busca por marca o categoría como campos independientes: usa los filtros para esos casos.\nLos filtros antiguos `size` y `color` no forman parte del contrato; usa `presentation` y `brand`.\n\n## Estado, identidad y alcance\n\nEl catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:\nun reinicio borra los carritos y varios procesos no comparten su contenido.\nPara conservar una sesión, utiliza la misma instancia del servicio.\n`user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios\nni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.\nNo existen rutas de inventario, reservas, entrega, historial de pedidos, cancelación ni reembolsos.\nNo afirmes que una compra fue completada hasta recibir el recibo de `payCart`.\n\n## Errores, reintentos y concurrencia\n\n- **400:** la operación no se pudo completar; lee `detail` y corrige la causa antes de reintentar.\n- **404:** el producto, carrito o artículo solicitado no existe; vuelve a consultar catálogo o carrito.\n- **422:** la solicitud no cumple el esquema; revisa `detail[].loc`, `msg` y `type`.\n  Los mensajes de validación del framework pueden estar en inglés.\n- Los errores 400/404 usan `{\"detail\":\"mensaje\"}`; no se devuelve un recibo de éxito en un error.\n- **No hay claves de idempotencia.** No reintentes ciegamente `addToCart`: sumarías unidades otra vez.\n  Ante una respuesta perdida, consulta `getCart` y reconcilia la cantidad deseada.\n- `updateCartItem` establece una cantidad absoluta. Repetir una eliminación puede devolver 404;\n  consulta el carrito para verificar que el artículo ya no está.\n- No reintentes automáticamente un pago con resultado desconocido. Un carrito vacío no prueba\n  que se completó un pago; no reconstruyas un recibo ni inventes un folio.\n- Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos\n  de concurrencia entre clientes.\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Usa el mismo origen donde se sirve este esquema OpenAPI."
+    }
+  ],
+  "paths": {
+    "/products": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Consultar productos",
+        "description": "Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.\n\nSin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND\ny comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:\n`/products?brand=Coca-Cola&presentation=600%20ml`.\nUna lista vacía significa que no hay coincidencias, no un error de conexión.\nUsa `id` como `productId` al agregar al carrito; `price` es el precio de una unidad de esa presentación.",
+        "operationId": "listProducts",
+        "parameters": [
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Marca exacta del catálogo. No distingue mayúsculas ni acentos.",
+              "examples": [
+                "Coca-Cola"
+              ],
+              "title": "Brand"
+            },
+            "description": "Marca exacta del catálogo. No distingue mayúsculas ni acentos."
+          },
+          {
+            "name": "presentation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Presentación exacta; conserva las unidades y espacios del catálogo.",
+              "examples": [
+                "600 ml"
+              ],
+              "title": "Presentation"
+            },
+            "description": "Presentación exacta; conserva las unidades y espacios del catálogo."
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar.",
+              "examples": [
+                "Bebidas",
+                "Botanas",
+                "Lácteos"
+              ],
+              "title": "Category"
+            },
+            "description": "Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catálogo completo o filtrado; [] si ningún producto coincide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  },
+                  "title": "Response Listproducts"
+                },
+                "examples": {
+                  "coincidencia": {
+                    "value": [
+                      {
+                        "id": "PRD_1",
+                        "name": "Coca-Cola Original 600 ml",
+                        "description": "Refresco de cola en botella individual.",
+                        "price": 22.0,
+                        "currency": "MXN",
+                        "attributes": {
+                          "brand": "Coca-Cola",
+                          "presentation": "600 ml",
+                          "category": "Bebidas"
+                        }
+                      }
+                    ]
+                  },
+                  "sinCoincidencias": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/search": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Buscar productos",
+        "description": "Busca productos por identificador, nombre o descripción.\n\nLa búsqueda es parcial, sin distinguir mayúsculas ni acentos. `cafe` encuentra `Café`.\nUna consulta como `PRD_1` también puede encontrar `PRD_10`; para un identificador exacto usa `getProduct`.\nSi no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.\nPara buscar por marca o categoría usa los filtros de `listProducts`.",
+        "operationId": "searchProducts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Busca por identificador, nombre o descripción (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
+              "title": "Q"
+            },
+            "description": "Busca por identificador, nombre o descripción (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
+            "examples": {
+              "porNombre": {
+                "summary": "Buscar refresco",
+                "value": "Coca-Cola"
+              },
+              "sinAcentos": {
+                "summary": "Buscar café sin escribir el acento",
+                "value": "cafe"
+              },
+              "porIdentificador": {
+                "summary": "Buscar por identificador",
+                "value": "PRD_1"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coincidencias parciales por identificador, nombre o descripción.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  },
+                  "title": "Response Searchproducts"
+                },
+                "examples": {
+                  "buscarRefresco": {
+                    "value": [
+                      {
+                        "id": "PRD_1",
+                        "name": "Coca-Cola Original 600 ml",
+                        "description": "Refresco de cola en botella individual.",
+                        "price": 22.0,
+                        "currency": "MXN",
+                        "attributes": {
+                          "brand": "Coca-Cola",
+                          "presentation": "600 ml",
+                          "category": "Bebidas"
+                        }
+                      }
+                    ]
+                  },
+                  "sinCoincidencias": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{product_id}": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Consultar un producto",
+        "description": "Consulta los detalles y el precio en MXN de un producto.\n\nUsa el id exacto devuelto por el catálogo. Esta operación permite resolver las referencias\nproductId del carrito para mostrar nombres, presentaciones y precios al cliente.\nSi recibes 404, vuelve a consultar el catálogo; no sustituyas productos sin revisar la elección del cliente.",
+        "operationId": "getProduct",
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "examples": [
+                "PRD_1"
+              ],
+              "title": "Product Id"
+            },
+            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalles de una presentación vendible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                },
+                "examples": {
+                  "producto": {
+                    "value": {
+                      "id": "PRD_1",
+                      "name": "Coca-Cola Original 600 ml",
+                      "description": "Refresco de cola en botella individual.",
+                      "price": 22.0,
+                      "currency": "MXN",
+                      "attributes": {
+                        "brand": "Coca-Cola",
+                        "presentation": "600 ml",
+                        "category": "Bebidas"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El identificador no corresponde a un producto del catálogo.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "productoInexistente": {
+                    "value": {
+                      "detail": "Producto no encontrado"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/{user_id}": {
+      "get": {
+        "tags": [
+          "Carrito"
+        ],
+        "summary": "Consultar carrito",
+        "description": "Consulta los productos y cantidades del carrito de un cliente.\n\nSi no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente\nproductId y quantity: consulta getProduct para conocer precios, nombres y presentaciones.\nUsa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.",
+        "operationId": "getCart",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales.",
+              "examples": [
+                "cliente123"
+              ],
+              "title": "User Id"
+            },
+            "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Carrito actual del cliente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CartItem"
+                  },
+                  "title": "Response Getcart"
+                },
+                "examples": {
+                  "conProductos": {
+                    "value": [
+                      {
+                        "productId": "PRD_1",
+                        "quantity": 2
+                      }
+                    ]
+                  },
+                  "vacio": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Carrito"
+        ],
+        "summary": "Agregar al carrito",
+        "description": "Agrega un producto al carrito. Si ya existe, incrementa su cantidad.\n\nquantity debe ser un entero mayor que cero. Si había una unidad y envías dos, quedan tres.\nPara dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.\nNo es idempotente: repetir la misma solicitud vuelve a sumar unidades.\nSi pierdes la respuesta, consulta getCart antes de reintentar.",
+        "operationId": "addToCart",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales.",
+              "examples": [
+                "cliente123"
+              ],
+              "title": "User Id"
+            },
+            "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartItem"
+              },
+              "examples": {
+                "dosRefrescos": {
+                  "summary": "Sumar dos botellas de 600 ml",
+                  "value": {
+                    "productId": "PRD_1",
+                    "quantity": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Carrito completo después de sumar las unidades solicitadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CartItem"
+                  },
+                  "title": "Response Addtocart"
+                },
+                "examples": {
+                  "actualizado": {
+                    "value": [
+                      {
+                        "productId": "PRD_1",
+                        "quantity": 2
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El identificador no corresponde a un producto del catálogo.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "productoInexistente": {
+                    "value": {
+                      "detail": "Producto no encontrado"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/{user_id}/{product_id}": {
+      "put": {
+        "tags": [
+          "Carrito"
+        ],
+        "summary": "Actualizar cantidad",
+        "description": "Actualiza la cantidad de un producto. Un valor de 0 o menor lo elimina del carrito.\n\nLa cantidad reemplaza el valor actual: no es una diferencia ni un incremento.\nLa partida debe existir; para agregar un producto nuevo usa addToCart.\nRepetir un valor positivo mantiene esa cantidad si la partida aún existe.\nSi ya eliminaste la partida, una nueva modificación devuelve 404.",
+        "operationId": "updateCartItem",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales.",
+              "examples": [
+                "cliente123"
+              ],
+              "title": "User Id"
+            },
+            "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales."
+          },
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "examples": [
+                "PRD_1"
+              ],
+              "title": "Product Id"
+            },
+            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartItemUpdate"
+              },
+              "examples": {
+                "establecerDos": {
+                  "summary": "Dejar exactamente dos unidades",
+                  "value": {
+                    "quantity": 2
+                  }
+                },
+                "eliminar": {
+                  "summary": "Eliminar la partida",
+                  "value": {
+                    "quantity": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Carrito completo con la cantidad establecida o la partida eliminada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CartItem"
+                  },
+                  "title": "Response Updatecartitem"
+                },
+                "examples": {
+                  "cantidadDos": {
+                    "value": [
+                      {
+                        "productId": "PRD_1",
+                        "quantity": 2
+                      }
+                    ]
+                  },
+                  "eliminado": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Consulta getCart para verificar el carrito y sus partidas antes de modificarlo.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "carritoInexistente": {
+                    "value": {
+                      "detail": "Carrito no encontrado para el cliente"
+                    }
+                  },
+                  "partidaInexistente": {
+                    "value": {
+                      "detail": "Producto no encontrado en el carrito"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Carrito"
+        ],
+        "summary": "Eliminar del carrito",
+        "description": "Elimina un producto del carrito.\n\nElimina todas las unidades de la partida, sin cuerpo de solicitud. No vacía las demás partidas.\nDevuelve 200 con el carrito actualizado (no 204). Si la partida ya no existe, devuelve 404;\ngetCart permite verificar el resultado de una eliminación cuya respuesta se perdió.",
+        "operationId": "removeFromCart",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales.",
+              "examples": [
+                "cliente123"
+              ],
+              "title": "User Id"
+            },
+            "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales."
+          },
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "examples": [
+                "PRD_1"
+              ],
+              "title": "Product Id"
+            },
+            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Carrito completo después de quitar la partida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CartItem"
+                  },
+                  "title": "Response Removefromcart"
+                },
+                "examples": {
+                  "ultimoProductoEliminado": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Consulta getCart para verificar el carrito y sus partidas antes de modificarlo.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "carritoInexistente": {
+                    "value": {
+                      "detail": "Carrito no encontrado para el cliente"
+                    }
+                  },
+                  "partidaInexistente": {
+                    "value": {
+                      "detail": "Producto no encontrado en el carrito"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{user_id}": {
+      "post": {
+        "tags": [
+          "Pagos"
+        ],
+        "summary": "Pagar carrito",
+        "description": "Paga el carrito y recibe un ticket con todos los importes en pesos mexicanos (MXN).\n\n## Pasarela de pago y PIN de prueba\n\nEste endpoint utiliza una pasarela de pago de prueba (mock): **no realiza cargos reales**.\nNo envíes tarjetas ni NIP bancarios reales. El campo pin no es un NIP bancario, CVV, contraseña\nde usuario ni código enviado por SMS: es una regla de validación de esta pasarela.\n\n**Cómo calcular el PIN:** toma creditCardNumber como texto, elimina sus espacios y copia\nsus últimos cuatro dígitos, sin modificarlos. Envía esos cuatro dígitos como el string pin.\nEl número ficticio debe contener al menos cuatro dígitos; no se validan vencimiento ni CVV.\nLa API no solicita nombre de titular, fecha de expiración, cuenta bancaria ni otros secretos.\n\n| Tarjeta ficticia (string) | PIN (string) | Resultado con carrito no vacío |\n| --- | --- | --- |\n| `1111222233334444` | `4444` | HTTP 200, recibo en MXN y carrito vacío |\n| `1111 2222 3333 4444` | `4444` | HTTP 200; se permiten espacios en el número |\n| `1111222233330042` | `0042` | HTTP 200; conserva ceros iniciales |\n| `1111222233334444` | `0000` | HTTP 400, `PIN de prueba no válido`; el carrito no cambia |\n\nEjemplo de solicitud funcional (agrega productos al carrito del mismo user_id primero):\n\n```json\n{\"creditCardNumber\": \"1111222233334444\", \"pin\": \"4444\"}\n```\n\nEnvía ambos campos como strings JSON: `\"4444\"`, no el número `4444`.\nSi integras un agente, puede utilizar el par ficticio anterior para esta pasarela;\nno necesita solicitar un NIP bancario real al cliente.\n\n## Recorrido completo\n\n1. Agrega productos con addToCart y revisa el carrito con getCart usando el mismo user_id.\n2. Resuelve sus productId con getProduct y revisa cantidades y total en MXN con el cliente.\n3. Envía la tarjeta ficticia y su PIN coincidente en esta operación.\n4. Con HTTP 200, conserva ticketId, paymentSummary y purchasedItems. Todos los importes son MXN.\n   El número de tarjeta se devuelve enmascarado y el PIN no aparece en el recibo.\n5. El carrito queda vacío. Para una nueva compra, agrega nuevos productos.\n\n## Errores y reintentos\n\nSe valida primero que el carrito tenga productos, después el formato de tarjeta y por último el PIN.\nSi el carrito está vacío, recibirás `El carrito está vacío o no existe` aunque el PIN también esté mal.\nUn error 400 o 422 no elimina los productos del carrito.\nNo hay idempotencia ni consulta posterior de tickets: ante un timeout no repitas automáticamente\nel pago ni vuelvas a llenar el carrito para intentar cobrar otra vez. Un carrito vacío por sí solo\nno confirma la compra; conserva el recibo solamente cuando lo recibas del servidor.",
+        "operationId": "payCart",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales.",
+              "examples": [
+                "cliente123"
+              ],
+              "title": "User Id"
+            },
+            "description": "Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. No es una credencial ni comprueba identidad; evita datos personales."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              },
+              "examples": {
+                "pagoAprobado": {
+                  "summary": "Tarjeta ficticia y PIN coincidente: aprueba si el carrito tiene productos",
+                  "value": {
+                    "creditCardNumber": "1111222233334444",
+                    "pin": "4444"
+                  }
+                },
+                "cerosIniciales": {
+                  "summary": "El PIN es texto: conserva los ceros iniciales",
+                  "value": {
+                    "creditCardNumber": "1111222233330042",
+                    "pin": "0042"
+                  }
+                },
+                "pinIncorrecto": {
+                  "summary": "Ejemplo que devuelve HTTP 400 sin vaciar un carrito con productos",
+                  "value": {
+                    "creditCardNumber": "1111222233334444",
+                    "pin": "0000"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pago aprobado: recibo completo en MXN y carrito vacío.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentReceipt"
+                },
+                "examples": {
+                  "compraDeDosRefrescos": {
+                    "value": {
+                      "status": "success",
+                      "message": "Pago procesado correctamente.",
+                      "ticketId": "TICKET-8a646941-64c1-4b0a-9e3b-2d9df971bb05",
+                      "paymentSummary": {
+                        "totalAmount": 44.0,
+                        "currency": "MXN",
+                        "paymentMethod": {
+                          "card": "**** **** **** 4444"
+                        }
+                      },
+                      "purchasedItems": [
+                        {
+                          "productId": "PRD_1",
+                          "name": "Coca-Cola Original 600 ml",
+                          "unitPrice": 22.0,
+                          "quantity": 2,
+                          "totalPrice": 44.0
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Solicitud no válida. Corrige los campos señalados en detail[].loc antes de reintentar. Por ejemplo, quantity debe ser entero y mayor que cero al agregar un producto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Pago no aprobado. No se vacía el carrito. Corrige detail antes de reintentar; no uses datos bancarios reales.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "carritoVacio": {
+                    "value": {
+                      "detail": "El carrito está vacío o no existe"
+                    }
+                  },
+                  "tarjetaNoValida": {
+                    "value": {
+                      "detail": "Formato de tarjeta no válido"
+                    }
+                  },
+                  "pinIncorrecto": {
+                    "value": {
+                      "detail": "PIN de prueba no válido"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CartItem": {
+        "properties": {
+          "productId": {
+            "type": "string",
+            "title": "Productid",
+            "description": "Identificador del producto",
+            "examples": [
+              "PRD_1"
+            ]
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "description": "Unidades de esta presentación. En POST se suman a las existentes.",
+            "examples": [
+              2
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "title": "CartItem",
+        "description": "Partida del carrito. Consulta el producto para obtener nombre, presentación y precio."
+      },
+      "CartItemUpdate": {
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity",
+            "description": "Nueva cantidad absoluta. Un valor de 0 o menor elimina el producto del carrito.",
+            "examples": [
+              3,
+              0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "quantity"
+        ],
+        "title": "CartItemUpdate",
+        "description": "Cantidad absoluta: no es un incremento ni una diferencia respecto al carrito actual."
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Motivo del error en español",
+            "examples": [
+              "Producto no encontrado"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "description": "Error de negocio: la operación solicitada no pudo completarse."
+      },
+      "PaymentMethod": {
+        "properties": {
+          "card": {
+            "type": "string",
+            "title": "Card",
+            "description": "Número de tarjeta enmascarado",
+            "examples": [
+              "**** **** **** 4444"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "card"
+        ],
+        "title": "PaymentMethod"
+      },
+      "PaymentReceipt": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Estado del pago",
+            "examples": [
+              "success"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Mensaje con el resultado de la operación"
+          },
+          "ticketId": {
+            "type": "string",
+            "title": "Ticketid",
+            "description": "Folio único del recibo. No es un productId ni permite consultar un pedido.",
+            "examples": [
+              "TICKET-8a646941-64c1-4b0a-9e3b-2d9df971bb05"
+            ]
+          },
+          "paymentSummary": {
+            "$ref": "#/components/schemas/PaymentSummary"
+          },
+          "purchasedItems": {
+            "items": {
+              "$ref": "#/components/schemas/PurchasedItem"
+            },
+            "type": "array",
+            "title": "Purchaseditems"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "ticketId",
+          "paymentSummary",
+          "purchasedItems"
+        ],
+        "title": "PaymentReceipt",
+        "description": "Comprobante de la compra. Consérvalo: no existe una ruta para consultar recibos anteriores."
+      },
+      "PaymentRequest": {
+        "properties": {
+          "creditCardNumber": {
+            "type": "string",
+            "title": "Creditcardnumber",
+            "description": "Número de tarjeta ficticio (mínimo 4 dígitos). La pasarela es de prueba; no envíes datos bancarios reales.",
+            "examples": [
+              "1111222233334444"
+            ]
+          },
+          "pin": {
+            "type": "string",
+            "title": "Pin",
+            "description": "PIN de prueba de 4 dígitos: debe coincidir con los últimos 4 dígitos de la tarjeta ficticia. No uses un NIP bancario real.",
+            "examples": [
+              "4444"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "creditCardNumber",
+          "pin"
+        ],
+        "title": "PaymentRequest",
+        "description": "Credenciales ficticias de la pasarela de prueba; nunca envíes datos bancarios reales."
+      },
+      "PaymentSummary": {
+        "properties": {
+          "totalAmount": {
+            "type": "number",
+            "title": "Totalamount",
+            "description": "Suma de todas las partidas en pesos mexicanos (MXN)",
+            "examples": [
+              44.0
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "const": "MXN",
+            "title": "Currency",
+            "description": "Moneda de todos los importes del recibo",
+            "default": "MXN"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          }
+        },
+        "type": "object",
+        "required": [
+          "totalAmount",
+          "paymentMethod"
+        ],
+        "title": "PaymentSummary",
+        "description": "Resumen de compra. currency aplica también a los importes de purchasedItems."
+      },
+      "Product": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único del producto",
+            "examples": [
+              "PRD_1"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nombre del producto",
+            "examples": [
+              "Coca-Cola Original 600 ml"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Descripción del producto",
+            "examples": [
+              "Refresco de cola en botella individual."
+            ]
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Price",
+            "description": "Precio por unidad en pesos mexicanos (MXN), no centavos",
+            "examples": [
+              22.0
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "const": "MXN",
+            "title": "Currency",
+            "description": "Moneda de los precios: pesos mexicanos",
+            "default": "MXN"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/ProductAttributes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "price",
+          "attributes"
+        ],
+        "title": "Product",
+        "description": "Producto vendible por unidad; price representa pesos mexicanos, no centavos."
+      },
+      "ProductAttributes": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "Marca del producto",
+            "examples": [
+              "Coca-Cola"
+            ]
+          },
+          "presentation": {
+            "type": "string",
+            "title": "Presentation",
+            "description": "Contenido o presentación del producto",
+            "examples": [
+              "600 ml"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Categoría del producto",
+            "examples": [
+              "Bebidas"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "presentation",
+          "category"
+        ],
+        "title": "ProductAttributes",
+        "description": "Atributos para distinguir presentaciones y aplicar filtros exactos al catálogo."
+      },
+      "PurchasedItem": {
+        "properties": {
+          "productId": {
+            "type": "string",
+            "title": "Productid",
+            "description": "Identificador del producto"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nombre del producto"
+          },
+          "unitPrice": {
+            "type": "number",
+            "title": "Unitprice",
+            "description": "Precio por unidad en pesos mexicanos (MXN)"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity",
+            "description": "Unidades compradas"
+          },
+          "totalPrice": {
+            "type": "number",
+            "title": "Totalprice",
+            "description": "Importe de la partida en pesos mexicanos (MXN)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "productId",
+          "name",
+          "unitPrice",
+          "quantity",
+          "totalPrice"
+        ],
+        "title": "PurchasedItem",
+        "description": "Partida del recibo: totalPrice = unitPrice × quantity, con importes en MXN."
+      },
+      "ValidationErrorResponse": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            },
+            "type": "array",
+            "title": "Detail",
+            "description": "Errores por corregir antes de reenviar la solicitud"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ValidationErrorResponse",
+        "description": "Uno o más errores de validación de la solicitud (HTTP 422)."
+      },
+      "ValidationIssue": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Loc",
+            "description": "Ubicación del campo: body, query o path, seguida de su nombre",
+            "examples": [
+              [
+                "body",
+                "quantity"
+              ],
+              [
+                "query",
+                "q"
+              ]
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "title": "Msg",
+            "description": "Explicación de la validación; puede estar en inglés"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Código del error de validación",
+            "examples": [
+              "missing",
+              "greater_than"
+            ]
+          },
+          "input": {
+            "title": "Input",
+            "description": "Valor rechazado, si el framework lo incluye"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationIssue",
+        "description": "Detalle de un campo que no cumple el contrato de entrada."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Productos",
+      "description": "Descubre productos y consulta precios en MXN. Operaciones de lectura sin modificar el carrito. Empieza aquí para obtener identificadores, marcas, presentaciones y categorías válidos."
+    },
+    {
+      "name": "Carrito",
+      "description": "Administra productos y cantidades de un cliente usando siempre el mismo user_id. POST suma cantidades; PUT establece cantidades absolutas; DELETE elimina una partida. Cada respuesta exitosa contiene el carrito completo, sin nombres ni precios."
+    },
+    {
+      "name": "Pagos",
+      "description": "Completa la compra del carrito y obtiene un recibo en MXN. La pasarela de prueba (mock) no realiza cargos reales: usa solamente datos ficticios. Consulta payCart antes de enviar la solicitud; no uses tarjetas ni NIP bancarios reales."
+    }
+  ]
+}

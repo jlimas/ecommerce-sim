@@ -1,10 +1,18 @@
 @baseUrl = http://localhost:8000
-@userId = user123
+@userId = cliente123
 
+### Preparar el carrito: dos refrescos a $22.00 MXN por unidad
+POST {{baseUrl}}/cart/{{userId}} HTTP/1.1
+Content-Type: application/json
 
-### Process a payment for the user's cart
+{
+  "productId": "PRD_1",
+  "quantity": 2
+}
 
-# The PIN must be the last 4 digits of the credit card number for the request to succeed.
+### Pagar el carrito en MXN
+# Pasarela de prueba: no realiza cargos reales. No uses datos bancarios reales.
+# El PIN de prueba coincide con los últimos cuatro dígitos de la tarjeta ficticia.
 POST {{baseUrl}}/payments/{{userId}} HTTP/1.1
 Content-Type: application/json
 
@@ -13,8 +21,7 @@ Content-Type: application/json
   "pin": "4444"
 }
 
-### Process a payment with an invalid PIN (for testing)
-
+### Pago con PIN de prueba incorrecto (agrega productos al carrito antes de ejecutarlo)
 POST {{baseUrl}}/payments/{{userId}} HTTP/1.1
 Content-Type: application/json
 

@@ -1,82 +1,61 @@
-# Ecommerce Simulation API
+# Tienda de la Esquina
 
-This project is a simple, lightweight simulation of an ecommerce backend API built with Python and FastAPI. It provides endpoints for managing products, a shopping cart, and processing payments, all using an in-memory data store.
+API de una tienda de conveniencia con catálogo, carrito y recibos de compra. Ofrece bebidas, botanas, galletas, dulces, lácteos, abarrotes y artículos de higiene. El catálogo, la documentación y los mensajes están en español. Todos los precios e importes están en **pesos mexicanos (MXN)**.
 
-The entire application is containerized with Docker and managed with a simple `Makefile`.
+## Desarrollo local
 
-## Core Technologies
+Requisitos: `uv` actualizado. El proyecto utiliza Python **3.15.2**; `uv` descarga la versión indicada en `.python-version` cuando es necesario.
 
-*   **Language:** Python 3.11
-*   **Framework:** FastAPI
-*   **Server:** Uvicorn
-*   **Package Management:** `uv`
-*   **Containerization:** Docker
-
-## Architecture Overview
-
-The application is built around the FastAPI framework, which provides a modern, high-performance foundation for the API. It is structured into three main logical components:
-
-1.  **In-Memory Data (`data.py`):** To keep things simple, this project does not use a database. All product data is generated at startup and stored in a global variable. Carts are also stored in a simple in-memory dictionary.
-2.  **API Routers (`apis/`):** The API is divided into logical modules for Products, Cart, and Payments. Each module contains its own FastAPI router, keeping the endpoint logic organized and separated.
-3.  **Pydantic Models (`models.py`):** All data shapes for requests and responses are strictly defined using Pydantic models, which ensures data validation, serialization, and clear API documentation.
-4.  **Containerization (`Dockerfile`):** The application is designed to run inside a Docker container. The `Dockerfile` is optimized for small image size and security, using a multi-stage build to handle dependencies.
-
-## Project Structure
-
-```
-.
-├── apis/               # Directory for API endpoint routers
-│   ├── cart.py         # Cart management endpoints
-│   ├── payments.py     # Payment processing endpoint
-│   └── products.py     # Product browsing and searching endpoints
-├── requests/           # Example .http files for API interaction
-│   ├── cart.http
-│   ├── payments.http
-│   └── products.http
-├── .venv/              # Virtual environment managed by uv
-├── data.py             # In-memory data generation
-├── models.py           # Pydantic data models
-├── main.py             # Main FastAPI application entrypoint
-├── Dockerfile          # For building the production Docker image
-├── Makefile            # For simplifying common development tasks
-└── requirements.txt    # Project dependencies
+```bash
+make install
+make run
 ```
 
-## How to Run
+- API: `http://localhost:8000`
+- Documentación interactiva: `http://localhost:8000/docs`
+- Esquema OpenAPI: `http://localhost:8000/openapi.json`
 
-You can run the application either locally on your machine or within a Docker container.
+El esquema incluye una guía para agentes e integraciones: flujo de compra, identificadores de operación estables, ejemplos de solicitudes y respuestas, reglas de moneda, errores, reintentos y el funcionamiento del PIN de prueba del pago. Puedes importar el archivo [openapi.json](openapi.json) en herramientas de agentes. Regénéralo con `make openapi` al cambiar rutas, modelos o documentación; las pruebas verifican que coincida con el esquema servido por la API.
 
-### Local Development
+Consulta [API.md](API.md) y los ejemplos de `requests/*.http` para explorar productos y completar una compra.
 
-This is the recommended approach for active development, as it provides hot-reloading.
+## Catálogo y moneda
 
-1.  **Install dependencies:** This will create a virtual environment and install all required packages.
-    ```bash
-    make install
-    ```
+El catálogo contiene 25 productos con identificadores y precios estables, como Coca-Cola Original de 600 ml a $22.00 MXN y Sabritas Original de 45 g a $19.00 MXN. Los productos incluyen marca, presentación y categoría; se pueden filtrar por estos atributos y buscar sin distinguir mayúsculas ni acentos.
 
-2.  **Run the server:**
-    ```bash
-    make run
-    ```
-    The API will be available at `http://localhost:8000`, and the interactive OpenAPI documentation can be accessed at `http://localhost:8000/docs`.
+Las rutas y los campos principales de JSON conservan sus nombres (`/products`, `productId`, `totalAmount`, etc.). Los atributos `size` y `color` se sustituyen por `presentation` y `brand`, también en los filtros. Los productos incluyen `currency: "MXN"`; en los recibos, `paymentSummary.currency` indica la moneda de todos los importes.
 
-### Running with Docker
+## Pagos
 
-This is the recommended approach for a production-like deployment.
+La pasarela de pago es de prueba: **no realiza cargos reales**. Usa únicamente datos ficticios, por ejemplo la tarjeta `1111222233334444` y el PIN `4444`. El PIN debe coincidir con los últimos cuatro dígitos de la tarjeta. **No envíes tarjetas ni NIP bancarios reales.** Estas reglas también aparecen en la operación de pago del esquema OpenAPI.
 
-1.  **Build the Docker image:**
-    ```bash
-    make docker-build
-    ```
+## Estructura y almacenamiento
 
-2.  **Run the container:**
-    ```bash
-    make docker-run
-    ```
-    The API will be available at `http://localhost:8000`.
+- `main.py`: aplicación FastAPI y registro de rutas.
+- `api_documentation.py`: guía de integración, parámetros y ejemplos del esquema OpenAPI.
+- `openapi.json`: contrato generado con `make openapi`.
+- `data.py`: catálogo fijo y carritos en memoria.
+- `models.py`: contratos Pydantic de solicitudes y respuestas.
+- `apis/`: operaciones de productos, carrito y pagos.
+- `requests/`: ejemplos de solicitudes HTTP.
+- `tests/`: pruebas de catálogo, carrito, pagos y esquema OpenAPI.
 
-3.  **Stop the container:**
-    ```bash
-    make docker-stop
-    ```
+Los carritos se pierden al reiniciar el proceso y no se comparten entre procesos. El catálogo no cambia al reiniciar. No hay autenticación: el identificador del cliente identifica su carrito, pero no verifica su identidad. No expongas datos sensibles en esta instancia.
+
+## Verificación
+
+```bash
+make lint
+make test
+```
+
+Las dependencias de ejecución y desarrollo se declaran en `pyproject.toml` y se fijan en `uv.lock`. `make install` sincroniza el entorno con ese archivo. Para actualizarlas, ejecuta `uv lock --upgrade`, `uv sync --locked` y `make requirements`; este último exporta únicamente las dependencias de ejecución a `requirements.txt` para Docker. Ruff y su hook de pre-commit deben usar la misma versión.
+
+## Docker
+
+```bash
+make docker-build
+make docker-run
+```
+
+La API queda disponible en `http://localhost:8000`.

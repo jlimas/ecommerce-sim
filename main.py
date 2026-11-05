@@ -1,24 +1,29 @@
 from fastapi import FastAPI
 
+from api_documentation import DESCRIPTION, TAGS, VALIDATION_RESPONSE
 from apis import cart, payments, products
 from models import RootResponse
 
 app = FastAPI(
-    title="Ecommerce Simulation API",
-    description="A simple API to simulate an ecommerce backend with products, carts, and payments.",
+    title="Tienda de la Esquina",
+    description=DESCRIPTION,
     version="1.0.0",
+    openapi_tags=TAGS,
+    servers=[{"url": "/", "description": "Usa el mismo origen donde se sirve este esquema OpenAPI."}],
+    responses=VALIDATION_RESPONSE,
 )
 
 # Include routers from the apis module
-app.include_router(products.router, tags=["Products"])
-app.include_router(cart.router, tags=["Cart"])
-app.include_router(payments.router, tags=["Payments"])
+app.include_router(products.router, tags=["Productos"])
+app.include_router(cart.router, tags=["Carrito"])
+app.include_router(payments.router, tags=["Pagos"])
 
 
 @app.get("/", response_model=RootResponse, include_in_schema=False)
 async def read_root() -> RootResponse:
-    """Welcome users and point them to the OpenAPI schema."""
+    """Da la bienvenida y muestra la ubicación del esquema OpenAPI."""
     return RootResponse(
-        message="Welcome to the Ecommerce Simulation API! An OpenAPI schema is available at /openapi.json.",
+        message="Bienvenido a Tienda de la Esquina. Consulta nuestro catálogo y compra en pesos mexicanos. "
+        "El esquema OpenAPI está disponible en /openapi.json.",
         openapi_url="/openapi.json",
     )

@@ -1,8 +1,8 @@
-# Agent Guidelines for ecommerce-sim
+# Agent Guidelines for Tienda de la Esquina
 
 ## Build, Test & Lint Commands
 
-- **Install dependencies:** `make install` (uses `uv` for package management)
+- **Install dependencies:** `make install` (uses `uv sync --locked` and Python 3.15.2)
 - **Run development server:** `make run` (hot-reloading on port 8000)
 - **Format code:** `make format` (runs `ruff format` + `ruff check --fix`)
 - **Lint code:** `make lint` (runs `ruff check`)
@@ -10,12 +10,15 @@
 - **Build Docker image:** `make docker-build`
 - **Run Docker container:** `make docker-run`
 - **Clean environment:** `make clean`
-- **No automated tests exist yet** — manually verify API behavior via `/requests/*.http` files
+- **Run tests:** `make test` (runs `uv run --locked python -m unittest discover -s tests -v`)
+- **Manual API examples:** `/requests/*.http` files
+- **Export OpenAPI:** `make openapi` after changing routes, models, or schema documentation; tests check the committed file
 
 ## Package Management
-- Use **`uv`** for all dependency management (faster than pip, see `requirements.txt`)
-- `uv venv` to create virtual environment
-- `uv pip install` to add/update packages
+- Use **`uv`** for all dependency management; `pyproject.toml` and `uv.lock` are the source of truth
+- `uv sync --locked` creates/syncs the environment using `.python-version`
+- `uv add` / `uv add --dev` to add packages; `uv lock --upgrade` to upgrade compatible versions
+- `make requirements` exports locked runtime dependencies for Docker; do not edit `requirements.txt` manually
 
 ## Code Style & Conventions
 

@@ -1,27 +1,67 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 
+from api_documentation import (
+    CART_EXAMPLE,
+    CART_NOT_FOUND,
+    PRODUCT_NOT_FOUND,
+    ProductId,
+    UserId,
+    success_response,
+)
 from data import CARTS, PRODUCTS
 from models import CartItem, CartItemUpdate
 
 router = APIRouter()
 
 
-@router.get("/cart/{user_id}", response_model=List[CartItem])
-async def get_cart(user_id: str):
+@router.get(
+    "/cart/{user_id}",
+    response_model=List[CartItem],
+    summary="Consultar carrito",
+    operation_id="getCart",
+    responses=success_response("Carrito actual del cliente.", conProductos=CART_EXAMPLE, vacio=[]),
+)
+async def get_cart(user_id: UserId) -> list[dict]:
     """
-    View the contents of a specific user's cart.
+    Consulta los productos y cantidades del carrito de un cliente.
+
+    Si no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente
+    productId y quantity: consulta getProduct para conocer precios, nombres y presentaciones.
+    Usa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.
     """
     if user_id not in CARTS:
         CARTS[user_id] = []
     return CARTS[user_id]
 
 
-@router.post("/cart/{user_id}", response_model=List[CartItem])
-async def add_to_cart(user_id: str, item: CartItem):
+@router.post(
+    "/cart/{user_id}",
+    response_model=List[CartItem],
+    summary="Agregar al carrito",
+    operation_id="addToCart",
+    responses={
+        **success_response("Carrito completo después de sumar las unidades solicitadas.", actualizado=CART_EXAMPLE),
+        **PRODUCT_NOT_FOUND,
+    },
+)
+async def add_to_cart(
+    user_id: UserId,
+    item: CartItem = Body(
+        ...,
+        openapi_examples={
+            "dosRefrescos": {"summary": "Sumar dos botellas de 600 ml", "value": {"productId": "PRD_1", "quantity": 2}}
+        },
+    ),
+) -> list[dict]:
     """
-    Add a product to the cart. If the item already exists, its quantity is increased.
+    Agrega un producto al carrito. Si ya existe, incrementa su cantidad.
+
+    quantity debe ser un entero mayor que cero. Si había una unidad y envías dos, quedan tres.
+    Para dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.
+    No es idempotente: repetir la misma solicitud vuelve a sumar unidades.
+    Si pierdes la respuesta, consulta getCart antes de reintentar.
     """
     if user_id not in CARTS:
         CARTS[user_id] = []
@@ -29,29 +69,57 @@ async def add_to_cart(user_id: str, item: CartItem):
     # Check if product exists
     product = next((p for p in PRODUCTS if p["id"] == item.product_id), None)
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
 
     existing_item = next((i for i in CARTS[user_id] if i["productId"] == item.product_id), None)
 
     if existing_item:
         existing_item["quantity"] += item.quantity
     else:
-        CARTS[user_id].append(item.dict(by_alias=True))
+        CARTS[user_id].append(item.model_dump(by_alias=True))
 
     return CARTS[user_id]
 
 
-@router.put("/cart/{user_id}/{product_id}", response_model=List[CartItem])
-async def update_cart_item(user_id: str, product_id: str, update: CartItemUpdate):
+@router.put(
+    "/cart/{user_id}/{product_id}",
+    response_model=List[CartItem],
+    summary="Actualizar cantidad",
+    operation_id="updateCartItem",
+    responses={
+        **success_response(
+            "Carrito completo con la cantidad establecida o la partida eliminada.",
+            cantidadDos=CART_EXAMPLE,
+            eliminado=[],
+        ),
+        **CART_NOT_FOUND,
+    },
+)
+async def update_cart_item(
+    user_id: UserId,
+    product_id: ProductId,
+    update: CartItemUpdate = Body(
+        ...,
+        openapi_examples={
+            "establecerDos": {"summary": "Dejar exactamente dos unidades", "value": {"quantity": 2}},
+            "eliminar": {"summary": "Eliminar la partida", "value": {"quantity": 0}},
+        },
+    ),
+) -> list[dict]:
     """
-    Update the quantity of a product in the cart.
+    Actualiza la cantidad de un producto. Un valor de 0 o menor lo elimina del carrito.
+
+    La cantidad reemplaza el valor actual: no es una diferencia ni un incremento.
+    La partida debe existir; para agregar un producto nuevo usa addToCart.
+    Repetir un valor positivo mantiene esa cantidad si la partida aún existe.
+    Si ya eliminaste la partida, una nueva modificación devuelve 404.
     """
     if user_id not in CARTS:
-        raise HTTPException(status_code=404, detail="Cart not found for user")
+        raise HTTPException(status_code=404, detail="Carrito no encontrado para el cliente")
 
     item = next((i for i in CARTS[user_id] if i["productId"] == product_id), None)
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found in cart")
+        raise HTTPException(status_code=404, detail="Producto no encontrado en el carrito")
 
     item["quantity"] = update.quantity
     if item["quantity"] <= 0:
@@ -60,18 +128,31 @@ async def update_cart_item(user_id: str, product_id: str, update: CartItemUpdate
     return CARTS[user_id]
 
 
-@router.delete("/cart/{user_id}/{product_id}", response_model=List[CartItem])
-async def remove_from_cart(user_id: str, product_id: str):
+@router.delete(
+    "/cart/{user_id}/{product_id}",
+    response_model=List[CartItem],
+    summary="Eliminar del carrito",
+    operation_id="removeFromCart",
+    responses={
+        **success_response("Carrito completo después de quitar la partida.", ultimoProductoEliminado=[]),
+        **CART_NOT_FOUND,
+    },
+)
+async def remove_from_cart(user_id: UserId, product_id: ProductId) -> list[dict]:
     """
-    Remove a product from the cart.
+    Elimina un producto del carrito.
+
+    Elimina todas las unidades de la partida, sin cuerpo de solicitud. No vacía las demás partidas.
+    Devuelve 200 con el carrito actualizado (no 204). Si la partida ya no existe, devuelve 404;
+    getCart permite verificar el resultado de una eliminación cuya respuesta se perdió.
     """
     if user_id not in CARTS:
-        raise HTTPException(status_code=404, detail="Cart not found for user")
+        raise HTTPException(status_code=404, detail="Carrito no encontrado para el cliente")
 
     original_cart_size = len(CARTS[user_id])
     CARTS[user_id] = [i for i in CARTS[user_id] if i["productId"] != product_id]
 
     if len(CARTS[user_id]) == original_cart_size:
-        raise HTTPException(status_code=404, detail="Item not found in cart")
+        raise HTTPException(status_code=404, detail="Producto no encontrado en el carrito")
 
     return CARTS[user_id]

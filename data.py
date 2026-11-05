@@ -1,32 +1,246 @@
-import random
-
-from faker import Faker
-
-fake = Faker()
+from models import Product, ProductAttributes
 
 
-def generate_products(num_products=20):
-    products = []
-    sizes = ["XS", "S", "M", "L", "XL"]
-    colors = ["Red", "Blue", "Green", "Black", "White", "Yellow", "Pink"]
-    categories = ["Apparel", "Accessories", "Footwear"]
-
-    for i in range(num_products):
-        product = {
-            "id": f"PRD_{i + 1}",
-            "name": fake.bs().title() + " " + fake.word().capitalize(),
-            "description": fake.catch_phrase(),
-            "price": round(random.uniform(10.0, 200.0), 2),
-            "attributes": {
-                "size": random.choice(sizes),
-                "color": random.choice(colors),
-                "category": random.choice(categories),
-            },
-        }
-        products.append(product)
-    return products
+def create_product(
+    number: int, name: str, description: str, price: float, brand: str, presentation: str, category: str
+) -> dict:
+    return Product(
+        id=f"PRD_{number}",
+        name=name,
+        description=description,
+        price=price,
+        attributes=ProductAttributes(brand=brand, presentation=presentation, category=category),
+    ).model_dump()
 
 
-# In-memory "database"
-PRODUCTS = generate_products(25)
-CARTS = {}  # { "user_id": [{"productId": "...", "quantity": 1}] }
+# Catálogo con identificadores y precios estables; los importes están en MXN.
+PRODUCTS = [
+    create_product(
+        1,
+        "Coca-Cola Original 600 ml",
+        "Refresco de cola en botella individual.",
+        22.00,
+        "Coca-Cola",
+        "600 ml",
+        "Bebidas",
+    ),
+    create_product(
+        2,
+        "Agua natural Ciel 1 L",
+        "Agua purificada sin gas en botella.",
+        18.00,
+        "Ciel",
+        "1 L",
+        "Bebidas",
+    ),
+    create_product(
+        3,
+        "Agua mineral Peñafiel 600 ml",
+        "Agua mineral con gas, sin azúcar.",
+        20.00,
+        "Peñafiel",
+        "600 ml",
+        "Bebidas",
+    ),
+    create_product(
+        4,
+        "Jugo Jumex de mango 413 ml",
+        "Néctar de mango en lata.",
+        19.50,
+        "Jumex",
+        "413 ml",
+        "Bebidas",
+    ),
+    create_product(
+        5,
+        "Electrolit de uva 625 ml",
+        "Bebida con electrolitos sabor uva.",
+        35.00,
+        "Electrolit",
+        "625 ml",
+        "Bebidas",
+    ),
+    create_product(
+        6,
+        "Café americano mediano",
+        "Café negro recién preparado, servido caliente y sin azúcar.",
+        25.00,
+        "De la Esquina",
+        "355 ml",
+        "Café y comida preparada",
+    ),
+    create_product(
+        7,
+        "Sabritas Original 45 g",
+        "Papas fritas con sal en bolsa individual.",
+        19.00,
+        "Sabritas",
+        "45 g",
+        "Botanas",
+    ),
+    create_product(
+        8,
+        "Doritos Nacho 61 g",
+        "Totopos de maíz con sabor a queso nacho.",
+        20.00,
+        "Doritos",
+        "61 g",
+        "Botanas",
+    ),
+    create_product(
+        9,
+        "Cheetos Torciditos 52 g",
+        "Botana de maíz con sabor a queso.",
+        18.00,
+        "Cheetos",
+        "52 g",
+        "Botanas",
+    ),
+    create_product(
+        10,
+        "Cacahuates japoneses Mafer 65 g",
+        "Cacahuates con cobertura crujiente estilo japonés.",
+        18.50,
+        "Mafer",
+        "65 g",
+        "Botanas",
+    ),
+    create_product(
+        11,
+        "Galletas Marías Gamesa 170 g",
+        "Galletas dulces para acompañar café o leche.",
+        21.00,
+        "Gamesa",
+        "170 g",
+        "Galletas y pan dulce",
+    ),
+    create_product(
+        12,
+        "Galletas Oreo Original 114 g",
+        "Galletas de chocolate con relleno sabor vainilla.",
+        24.00,
+        "Oreo",
+        "114 g",
+        "Galletas y pan dulce",
+    ),
+    create_product(
+        13,
+        "Gansito Marinela 50 g",
+        "Pastelito con relleno de crema y fresa, cubierto de chocolate.",
+        20.00,
+        "Marinela",
+        "50 g",
+        "Galletas y pan dulce",
+    ),
+    create_product(
+        14,
+        "Donas Bimbo 105 g",
+        "Paquete de donas espolvoreadas con azúcar.",
+        23.00,
+        "Bimbo",
+        "105 g",
+        "Galletas y pan dulce",
+    ),
+    create_product(
+        15,
+        "Chocolate Carlos V 20 g",
+        "Barra individual de chocolate con leche.",
+        12.00,
+        "Carlos V",
+        "20 g",
+        "Dulces y chocolates",
+    ),
+    create_product(
+        16,
+        "Mazapán De la Rosa 28 g",
+        "Dulce de cacahuate en presentación individual.",
+        8.00,
+        "De la Rosa",
+        "28 g",
+        "Dulces y chocolates",
+    ),
+    create_product(
+        17,
+        "Chicles Trident hierbabuena 18 piezas",
+        "Goma de mascar sin azúcar sabor hierbabuena.",
+        19.00,
+        "Trident",
+        "18 piezas",
+        "Dulces y chocolates",
+    ),
+    create_product(
+        18,
+        "Leche entera Lala 1 L",
+        "Leche entera ultrapasteurizada en envase de cartón.",
+        30.00,
+        "Lala",
+        "1 L",
+        "Lácteos",
+    ),
+    create_product(
+        19,
+        "Yogur bebible Yoplait de fresa 220 g",
+        "Yogur para beber sabor fresa; conservar refrigerado.",
+        18.00,
+        "Yoplait",
+        "220 g",
+        "Lácteos",
+    ),
+    create_product(
+        20,
+        "Sándwich de jamón y queso",
+        "Sándwich en pan blanco con jamón de pavo y queso; conservar refrigerado.",
+        39.00,
+        "De la Esquina",
+        "1 pieza",
+        "Café y comida preparada",
+    ),
+    create_product(
+        21,
+        "Sopa Maruchan de pollo 64 g",
+        "Sopa instantánea en vaso sabor pollo; agregar agua caliente.",
+        18.00,
+        "Maruchan",
+        "64 g",
+        "Abarrotes",
+    ),
+    create_product(
+        22,
+        "Atún Dolores en agua 140 g",
+        "Atún en agua en lata abre fácil.",
+        24.00,
+        "Dolores",
+        "140 g",
+        "Abarrotes",
+    ),
+    create_product(
+        23,
+        "Frijoles refritos Isadora 430 g",
+        "Frijoles bayos refritos en bolsa, listos para calentar.",
+        22.00,
+        "Isadora",
+        "430 g",
+        "Abarrotes",
+    ),
+    create_product(
+        24,
+        "Papel higiénico Pétalo 4 rollos",
+        "Paquete de papel higiénico de doble hoja.",
+        38.00,
+        "Pétalo",
+        "4 rollos",
+        "Higiene y hogar",
+    ),
+    create_product(
+        25,
+        "Jabón Palmolive Naturals 150 g",
+        "Jabón de tocador en barra para uso diario.",
+        19.50,
+        "Palmolive",
+        "150 g",
+        "Higiene y hogar",
+    ),
+]
+
+# Estado en memoria: se vacía al reiniciar la aplicación.
+CARTS: dict[str, list[dict]] = {}

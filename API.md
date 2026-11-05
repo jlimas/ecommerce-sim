@@ -1,181 +1,131 @@
-# API Documentation
+# API de Tienda de la Esquina
 
-This document provides detailed information about the Ecommerce Simulation API endpoints.
+- **URL base:** `http://localhost:8000`
+- **Moneda:** pesos mexicanos (`MXN`) en todos los precios e importes.
+- **Esquema completo:** `/openapi.json` · **Documentación interactiva:** `/docs`
 
-**Base URL:** `http://localhost:8000`
+El esquema OpenAPI es el contrato de integración principal. Incluye instrucciones de uso, ejemplos nombrados, esquemas de errores y reglas de reintento para cada operación. También está disponible como archivo `openapi.json` en el repositorio; se genera con `make openapi`.
 
----
+Las rutas y las claves JSON conservan sus nombres en inglés para facilitar las integraciones. El catálogo, los mensajes y las descripciones están en español.
 
-## 1. Products API
-
-Handles browsing and searching for products.
+## Productos
 
 ### `GET /products`
 
-Retrieves a list of all available products. Can be filtered by product attributes.
+Consulta el catálogo. Permite combinar filtros exactos por `brand`, `presentation` y `category`, sin distinguir mayúsculas ni acentos.
 
-*   **Method:** `GET`
-*   **Path:** `/products`
-*   **Query Parameters:**
-    *   `size` (optional, string): Filter by size (e.g., "M", "L").
-    *   `color` (optional, string): Filter by color (e.g., "Red").
-    *   `category` (optional, string): Filter by category (e.g., "Apparel").
-*   **Success Response (200 OK):**
-    ```json
-    [
-      {
-        "id": "PRD#1",
-        "name": "Synergistic Unaligned Application",
-        "description": "Cross-platform scalable array",
-        "price": 43.68,
-        "attributes": {
-          "size": "L",
-          "color": "Red",
-          "category": "Footwear"
-        }
-      }
-    ]
-    ```
+Ejemplos: `/products?category=Bebidas`, `/products?brand=Coca-Cola&presentation=600%20ml`.
 
-### `GET /products/search`
+```json
+[
+  {
+    "id": "PRD_1",
+    "name": "Coca-Cola Original 600 ml",
+    "description": "Refresco de cola en botella individual.",
+    "price": 22.0,
+    "currency": "MXN",
+    "attributes": {
+      "brand": "Coca-Cola",
+      "presentation": "600 ml",
+      "category": "Bebidas"
+    }
+  }
+]
+```
 
-Searches for products by a query string in their name or description.
+Los antiguos atributos y filtros `size` y `color` se sustituyen por `presentation` y `brand`.
 
-*   **Method:** `GET`
-*   **Path:** `/products/search`
-*   **Query Parameters:**
-    *   `q` (required, string): The search term. Must be at least 3 characters.
-*   **Success Response (200 OK):** (Same structure as `GET /products`)
+### `GET /products/search?q=cafe`
+
+Busca coincidencias parciales en el identificador, nombre o descripción. `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `cafe` encuentra `Café`. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
 
 ### `GET /products/{product_id}`
 
-Retrieves a single product by its unique ID.
+Consulta un producto, por ejemplo `/products/PRD_1`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
 
-*   **Method:** `GET`
-*   **Path:** `/products/{product_id}`
-*   **Path Parameters:**
-    *   `product_id` (required, string): The ID of the product (e.g., "PRD#1").
-*   **Success Response (200 OK):** (Same structure as a single item in `GET /products`)
-*   **Error Response (404 Not Found):**
-    ```json
-    {
-      "detail": "Product not found"
-    }
-    ```
+## Carrito
 
----
-
-## 2. Cart API
-
-Handles all shopping cart operations for a given user.
+`user_id` identifica el carrito del cliente (por ejemplo, `cliente123`); no representa autenticación.
 
 ### `GET /cart/{user_id}`
 
-Retrieves the current state of a user's shopping cart.
+Consulta el carrito. Un cliente sin productos recibe `[]`.
 
-*   **Method:** `GET`
-*   **Path:** `/cart/{user_id}`
-*   **Success Response (200 OK):**
-    ```json
-    [
-      {
-        "productId": "PRD#1",
-        "quantity": 2
-      }
-    ]
-    ```
+```json
+[
+  {"productId": "PRD_1", "quantity": 2}
+]
+```
 
 ### `POST /cart/{user_id}`
 
-Adds a product to the user's cart. If the product is already in the cart, its quantity is increased.
+Agrega un producto existente. Si ya está en el carrito, incrementa su cantidad. `quantity` debe ser un entero mayor que cero.
 
-*   **Method:** `POST`
-*   **Path:** `/cart/{user_id}`
-*   **Request Body:**
-    ```json
-    {
-      "productId": "PRD#1",
-      "quantity": 1
-    }
-    ```
-*   **Success Response (200 OK):** (Returns the updated cart)
-*   **Error Response (404 Not Found):** If `productId` does not exist.
+```json
+{"productId": "PRD_1", "quantity": 2}
+```
+
+Devuelve el carrito actualizado. Si el producto no existe, devuelve **404**.
 
 ### `PUT /cart/{user_id}/{product_id}`
 
-Updates the quantity of a specific product in the cart. If quantity is set to 0 or less, the item is removed.
+Reemplaza la cantidad de un producto del carrito. Un valor de cero o menor elimina el producto.
 
-*   **Method:** `PUT`
-*   **Path:** `/cart/{user_id}/{product_id}`
-*   **Request Body:**
-    ```json
-    {
-      "quantity": 3
-    }
-    ```
-*   **Success Response (200 OK):** (Returns the updated cart)
-*   **Error Response (404 Not Found):** If user cart or product in cart does not exist.
+```json
+{"quantity": 3}
+```
+
+Devuelve el carrito actualizado. Si el carrito o el producto en el carrito no existe, devuelve **404**.
 
 ### `DELETE /cart/{user_id}/{product_id}`
 
-Removes a product entirely from the user's cart.
+Elimina el producto y devuelve el carrito actualizado. Si el carrito o el producto en el carrito no existe, devuelve **404**.
 
-*   **Method:** `DELETE`
-*   **Path:** `/cart/{user_id}/{product_id}`
-*   **Success Response (200 OK):** (Returns the updated cart)
-
----
-
-## 3. Payments API
-
-Handles the final payment processing step.
+## Pagos
 
 ### `POST /payments/{user_id}`
 
-Processes the payment for a user's entire cart.
+Procesa el carrito completo y genera un recibo en MXN. Al aprobarse el pago, vacía el carrito.
 
-*   **Method:** `POST`
-*   **Path:** `/payments/{user_id}`
-*   **Validation Rule:** The `pin` must be the last 4 digits of the `creditCardNumber`.
-*   **Request Body:**
-    ```json
+**Pasarela de prueba (mock): no realiza cargos reales.** Usa exclusivamente una tarjeta ficticia y un PIN de prueba. No envíes tarjetas ni NIP bancarios reales. El número debe contener al menos cuatro dígitos (se permiten espacios); el PIN debe coincidir con sus últimos cuatro dígitos.
+
+```json
+{
+  "creditCardNumber": "1111222233334444",
+  "pin": "4444"
+}
+```
+
+Respuesta **200**, para un carrito con dos unidades de `PRD_1`:
+
+```json
+{
+  "status": "success",
+  "message": "Pago procesado correctamente.",
+  "ticketId": "TICKET-a1b2c3d4-...",
+  "paymentSummary": {
+    "totalAmount": 44.0,
+    "currency": "MXN",
+    "paymentMethod": {"card": "**** **** **** 4444"}
+  },
+  "purchasedItems": [
     {
-      "creditCardNumber": "1111222233334444",
-      "pin": "4444"
+      "productId": "PRD_1",
+      "name": "Coca-Cola Original 600 ml",
+      "unitPrice": 22.0,
+      "quantity": 2,
+      "totalPrice": 44.0
     }
-    ```
-*   **Success Response (200 OK):** Returns a full transaction receipt.
-    ```json
-    {
-      "status": "success",
-      "message": "Payment processed successfully.",
-      "ticketId": "TICKET-a1b2c3d4-...",
-      "paymentSummary": {
-        "totalAmount": 131.04,
-        "paymentMethod": {
-          "card": "**** **** **** 4444"
-        }
-      },
-      "purchasedItems": [
-        {
-          "productId": "PRD#1",
-          "name": "Synergistic Unaligned Application",
-          "unitPrice": 43.68,
-          "quantity": 3,
-          "totalPrice": 131.04
-        }
-      ]
-    }
-    ```
-*   **Error Responses:**
-    *   **400 Bad Request:** If the cart is empty or the PIN is invalid.
-    ```json
-    {
-      "detail": "Cart is empty or does not exist"
-    }
-    ```
-    ```json
-    {
-      "detail": "Invalid PIN"
-    }
-    ```
+  ]
+}
+```
+
+`paymentSummary.currency` aplica tanto al total como a cada precio del recibo.
+
+Errores **400** (no se vacía el carrito):
+
+- `El carrito está vacío o no existe`
+- `Formato de tarjeta no válido`
+- `PIN de prueba no válido`
+
+Las solicitudes que no cumplen los tipos, campos requeridos o límites del esquema devuelven **422** con los detalles de validación de FastAPI.
