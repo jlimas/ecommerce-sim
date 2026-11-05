@@ -30,26 +30,26 @@ async def get_products(
     brand: Optional[str] = Query(
         default=None,
         description="Marca exacta del catálogo. No distingue mayúsculas ni acentos.",
-        examples=["Coca-Cola"],
+        examples=["YaGoods"],
     ),
     presentation: Optional[str] = Query(
         default=None,
         description="Presentación exacta; conserva las unidades y espacios del catálogo.",
-        examples=["600 ml"],
+        examples=["Caja con 4 botellas de vidrio de 350 ml"],
     ),
     category: Optional[str] = Query(
         default=None,
         description="Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar.",
-        examples=["Bebidas", "Botanas", "Lácteos"],
+        examples=["Jugos y bebidas", "Botanas", "Barras de granola y proteína"],
     ),
 ) -> list[dict]:
     """Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.
 
     Sin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND
     y comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:
-    `/products?brand=Coca-Cola&presentation=600%20ml`.
+    `/products?brand=YaGoods&category=Botanas`.
     Una lista vacía significa que no hay coincidencias, no un error de conexión.
-    Usa `id` como `productId` al agregar al carrito; `price` es el precio de una unidad de esa presentación.
+    Usa el SKU `id` como `productId` al agregar al carrito; `price` es el precio de una caja completa.
     """
     filters = {"brand": brand, "presentation": presentation, "category": category}
     return [
@@ -70,7 +70,7 @@ async def get_products(
     operation_id="searchProducts",
     responses=success_response(
         "Coincidencias parciales por identificador, nombre o descripción.",
-        buscarRefresco=[PRODUCT_EXAMPLE],
+        buscarJugo=[PRODUCT_EXAMPLE],
         sinCoincidencias=[],
     ),
 )
@@ -81,16 +81,16 @@ async def search_products(
         description="Busca por identificador, nombre o descripción (mínimo 3 caracteres). "
         "No distingue mayúsculas ni acentos.",
         openapi_examples={
-            "porNombre": {"summary": "Buscar refresco", "value": "Coca-Cola"},
-            "sinAcentos": {"summary": "Buscar café sin escribir el acento", "value": "cafe"},
-            "porIdentificador": {"summary": "Buscar por identificador", "value": "PRD_1"},
+            "porNombre": {"summary": "Buscar jugo de naranja", "value": "naranja"},
+            "sinAcentos": {"summary": "Buscar limón sin escribir el acento", "value": "limon"},
+            "porIdentificador": {"summary": "Buscar por SKU", "value": "YG001"},
         },
     ),
 ) -> list[dict]:
     """Busca productos por identificador, nombre o descripción.
 
-    La búsqueda es parcial, sin distinguir mayúsculas ni acentos. `cafe` encuentra `Café`.
-    Una consulta como `PRD_1` también puede encontrar `PRD_10`; para un identificador exacto usa `getProduct`.
+    La búsqueda es parcial, sin distinguir mayúsculas ni acentos. `limon` encuentra `limón`.
+    Una consulta como `YG0` encuentra varios SKU; para un identificador exacto usa `getProduct`.
     Si no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.
     Para buscar por marca o categoría usa los filtros de `listProducts`.
     """

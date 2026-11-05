@@ -45,7 +45,13 @@
 
 ### Data & State
 - In-memory data stored in `data.py` (PRODUCTS list, CARTS dictionary)
-- No database—all state is transient; restart clears data
+- Product source: `catalog/products.csv`; Mexican Spanish display text and defaults: `catalog/localization.json`
+- Preserve source SKUs and numeric MXN prices. `price` is per box; `quantity` counts boxes; `unitsPerPackage` counts contents
+- See `catalog/README.md` for source inconsistencies and normalization decisions
+- Product images are local WebP files in `static/products/`, served through each product's `imageUrl`
+- `sync_catalog_images.py` downloads source images; `generate_product_images.py` is optional future AI generation
+- Never generate images or fetch remote catalog data during startup or requests
+- No database—carts are transient; restart clears carts, not the source catalog
 - Initialize default state at module import time
 
 ### API Design

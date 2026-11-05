@@ -1,12 +1,12 @@
 @baseUrl = http://localhost:8000
 @userId = cliente123
 
-### Preparar el carrito: dos refrescos a $22.00 MXN por unidad
+### Preparar el carrito: dos cajas de jugo de naranja a $125.00 MXN por caja (total $250.00 MXN)
 POST {{baseUrl}}/cart/{{userId}} HTTP/1.1
 Content-Type: application/json
 
 {
-  "productId": "PRD_1",
+  "productId": "YG001",
   "quantity": 2
 }
 

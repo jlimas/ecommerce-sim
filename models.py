@@ -40,23 +40,50 @@ class ValidationErrorResponse(BaseModel):
 class ProductAttributes(BaseModel):
     """Atributos para distinguir presentaciones y aplicar filtros exactos al catálogo."""
 
-    brand: str = Field(..., description="Marca del producto", examples=["Coca-Cola"])
-    presentation: str = Field(..., description="Contenido o presentación del producto", examples=["600 ml"])
-    category: str = Field(..., description="Categoría del producto", examples=["Bebidas"])
+    brand: str = Field(..., description="Marca del producto", examples=["YaGoods"])
+    presentation: str = Field(
+        ..., description="Contenido de la caja vendible", examples=["Caja con 4 botellas de vidrio de 350 ml"]
+    )
+    category: str = Field(..., description="Categoría del producto", examples=["Jugos y bebidas"])
 
 
 class Product(BaseModel):
-    """Producto vendible por unidad; price representa pesos mexicanos, no centavos."""
+    """Caja vendible; price es el precio de toda la caja en pesos mexicanos, no centavos."""
 
-    id: str = Field(..., description="Identificador único del producto", examples=["PRD_1"])
-    name: str = Field(..., description="Nombre del producto", examples=["Coca-Cola Original 600 ml"])
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str = Field(..., description="SKU del catálogo e identificador único del producto", examples=["YG001"])
+    name: str = Field(
+        ...,
+        description="Nombre del producto en español de México",
+        examples=["Jugo de naranja, 4 botellas de vidrio de 350 ml"],
+    )
     description: str = Field(
-        ..., description="Descripción del producto", examples=["Refresco de cola en botella individual."]
+        ..., description="Descripción del producto", examples=["Jugo de naranja sin azúcar añadida."]
     )
     price: float = Field(
-        ..., ge=0, description="Precio por unidad en pesos mexicanos (MXN), no centavos", examples=[22.0]
+        ...,
+        ge=0,
+        description="Precio de toda la caja en pesos mexicanos (MXN), no centavos ni precio por botella",
+        examples=[125.0],
     )
     currency: Literal["MXN"] = Field(default="MXN", description="Moneda de los precios: pesos mexicanos")
+    image_url: str = Field(
+        ...,
+        alias="imageUrl",
+        description="Ruta de la imagen ilustrativa del producto, relativa al origen de la API. "
+        "Descárgala con GET sin credenciales. Devuelve image/webp de 512 × 512 píxeles, no JSON.",
+        examples=["/images/products/YG001.webp"],
+        json_schema_extra={"format": "uri-reference"},
+    )
+    package_type: str = Field(..., alias="packageType", description="Tipo de empaque que se vende", examples=["caja"])
+    units_per_package: int = Field(
+        ...,
+        alias="unitsPerPackage",
+        gt=0,
+        description="Unidades contenidas en una caja, no la cantidad de cajas del carrito",
+        examples=[4],
+    )
     attributes: ProductAttributes
 
 
@@ -65,9 +92,12 @@ class CartItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    product_id: str = Field(..., alias="productId", description="Identificador del producto", examples=["PRD_1"])
+    product_id: str = Field(..., alias="productId", description="SKU del producto", examples=["YG001"])
     quantity: int = Field(
-        ..., gt=0, description="Unidades de esta presentación. En POST se suman a las existentes.", examples=[2]
+        ...,
+        gt=0,
+        description="Cantidad de cajas completas, no de botellas o bolsas sueltas. En POST se suma.",
+        examples=[2],
     )
 
 
@@ -109,7 +139,7 @@ class PaymentSummary(BaseModel):
     """Resumen de compra. currency aplica también a los importes de purchasedItems."""
 
     total_amount: float = Field(
-        ..., alias="totalAmount", description="Suma de todas las partidas en pesos mexicanos (MXN)", examples=[44.0]
+        ..., alias="totalAmount", description="Suma de todas las partidas en pesos mexicanos (MXN)", examples=[250.0]
     )
     currency: Literal["MXN"] = Field(default="MXN", description="Moneda de todos los importes del recibo")
     payment_method: PaymentMethod = Field(..., alias="paymentMethod")
@@ -122,8 +152,10 @@ class PurchasedItem(BaseModel):
 
     product_id: str = Field(..., alias="productId", description="Identificador del producto")
     name: str = Field(..., description="Nombre del producto")
-    unit_price: float = Field(..., alias="unitPrice", description="Precio por unidad en pesos mexicanos (MXN)")
-    quantity: int = Field(..., description="Unidades compradas")
+    unit_price: float = Field(
+        ..., alias="unitPrice", description="Precio de una caja completa en pesos mexicanos (MXN)"
+    )
+    quantity: int = Field(..., description="Cantidad de cajas compradas, no de botellas, latas o bolsas individuales")
     total_price: float = Field(..., alias="totalPrice", description="Importe de la partida en pesos mexicanos (MXN)")
 
     model_config = ConfigDict(populate_by_name=True)

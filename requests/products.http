@@ -1,17 +1,20 @@
 @baseUrl = http://localhost:8000
-@productId = PRD_1
+@productId = YG001
 
 ### Consultar todos los productos (precios en MXN)
 GET {{baseUrl}}/products HTTP/1.1
 
 ### Filtrar por marca y presentación
-GET {{baseUrl}}/products?brand=Coca-Cola&presentation=600%20ml HTTP/1.1
+GET {{baseUrl}}/products?brand=YaGoods&presentation=Caja%20con%204%20botellas%20de%20vidrio%20de%20350%20ml HTTP/1.1
 
 ### Filtrar por categoría
-GET {{baseUrl}}/products?category=Bebidas HTTP/1.1
+GET {{baseUrl}}/products?category=Botanas HTTP/1.1
 
 ### Buscar productos sin distinguir acentos
-GET {{baseUrl}}/products/search?q=cafe HTTP/1.1
+GET {{baseUrl}}/products/search?q=limon HTTP/1.1
 
 ### Consultar un producto
 GET {{baseUrl}}/products/{{productId}} HTTP/1.1
+
+### Descargar la imagen del producto (respuesta binaria image/webp)
+GET {{baseUrl}}/images/products/{{productId}}.webp HTTP/1.1

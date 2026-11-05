@@ -14,20 +14,23 @@ Las rutas y las claves JSON conservan sus nombres en inglés para facilitar las 
 
 Consulta el catálogo. Permite combinar filtros exactos por `brand`, `presentation` y `category`, sin distinguir mayúsculas ni acentos.
 
-Ejemplos: `/products?category=Bebidas`, `/products?brand=Coca-Cola&presentation=600%20ml`.
+Ejemplos: `/products?category=Botanas`, `/products?brand=YaGoods`.
 
 ```json
 [
   {
-    "id": "PRD_1",
-    "name": "Coca-Cola Original 600 ml",
-    "description": "Refresco de cola en botella individual.",
-    "price": 22.0,
+    "id": "YG001",
+    "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+    "description": "Jugo de naranja sin azúcar añadida.",
+    "price": 125.0,
     "currency": "MXN",
+    "imageUrl": "/images/products/YG001.webp",
+    "packageType": "caja",
+    "unitsPerPackage": 4,
     "attributes": {
-      "brand": "Coca-Cola",
-      "presentation": "600 ml",
-      "category": "Bebidas"
+      "brand": "YaGoods",
+      "presentation": "Caja con 4 botellas de vidrio de 350 ml",
+      "category": "Jugos y bebidas"
     }
   }
 ]
@@ -35,13 +38,17 @@ Ejemplos: `/products?category=Bebidas`, `/products?brand=Coca-Cola&presentation=
 
 Los antiguos atributos y filtros `size` y `color` se sustituyen por `presentation` y `brand`.
 
-### `GET /products/search?q=cafe`
+`price` cubre una caja completa; `unitsPerPackage` indica las unidades dentro de la caja. El carrito cuenta cajas, no botellas ni bolsas sueltas. El catálogo usa los 39 SKU del CSV de origen, traducidos al español de México. Los precios numéricos del CSV se interpretan como MXN porque no se proporciona una moneda de origen.
 
-Busca coincidencias parciales en el identificador, nombre o descripción. `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `cafe` encuentra `Café`. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
+`imageUrl` es relativa al origen de la API. Por ejemplo, `http://localhost:8000/images/products/YG001.webp` devuelve una imagen WebP de 512 × 512 píxeles, no JSON. No requiere credenciales. Las imágenes del CSV se sirven localmente, son ilustrativas y admiten caché condicional con ETag/Last-Modified. Las rutas estáticas no son operaciones adicionales del esquema OpenAPI.
+
+### `GET /products/search?q=limon`
+
+Busca coincidencias parciales en el identificador, nombre o descripción. `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `limon` encuentra `limón`. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
 
 ### `GET /products/{product_id}`
 
-Consulta un producto, por ejemplo `/products/PRD_1`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
+Consulta un producto, por ejemplo `/products/YG001`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
 
 ## Carrito
 
@@ -53,7 +60,7 @@ Consulta el carrito. Un cliente sin productos recibe `[]`.
 
 ```json
 [
-  {"productId": "PRD_1", "quantity": 2}
+  {"productId": "YG001", "quantity": 2}
 ]
 ```
 
@@ -62,7 +69,7 @@ Consulta el carrito. Un cliente sin productos recibe `[]`.
 Agrega un producto existente. Si ya está en el carrito, incrementa su cantidad. `quantity` debe ser un entero mayor que cero.
 
 ```json
-{"productId": "PRD_1", "quantity": 2}
+{"productId": "YG001", "quantity": 2}
 ```
 
 Devuelve el carrito actualizado. Si el producto no existe, devuelve **404**.
@@ -96,7 +103,7 @@ Procesa el carrito completo y genera un recibo en MXN. Al aprobarse el pago, vac
 }
 ```
 
-Respuesta **200**, para un carrito con dos unidades de `PRD_1`:
+Respuesta **200**, para un carrito con dos cajas de `YG001` (ocho botellas en total):
 
 ```json
 {
@@ -104,17 +111,17 @@ Respuesta **200**, para un carrito con dos unidades de `PRD_1`:
   "message": "Pago procesado correctamente.",
   "ticketId": "TICKET-a1b2c3d4-...",
   "paymentSummary": {
-    "totalAmount": 44.0,
+    "totalAmount": 250.0,
     "currency": "MXN",
     "paymentMethod": {"card": "**** **** **** 4444"}
   },
   "purchasedItems": [
     {
-      "productId": "PRD_1",
-      "name": "Coca-Cola Original 600 ml",
-      "unitPrice": 22.0,
+      "productId": "YG001",
+      "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+      "unitPrice": 125.0,
       "quantity": 2,
-      "totalPrice": 44.0
+      "totalPrice": 250.0
     }
   ]
 }

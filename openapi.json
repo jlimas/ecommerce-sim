@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Tienda de la Esquina",
-    "description": "\n## Tienda de la Esquina\n\nCatálogo de una tienda de conveniencia en México: bebidas, botanas, galletas, dulces,\nlácteos, abarrotes, café, comida preparada y artículos de higiene y hogar.\nLos nombres, descripciones y mensajes comerciales están en español.\n\n## Guía de integración para clientes y agentes\n\n1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar\n   por nombre, descripción o identificador. Usa los `id` devueltos; no inventes identificadores.\n2. **Elegir una presentación:** compara `attributes.brand`, `attributes.presentation`,\n   `price` y `currency`. Una botella de 600 ml es una unidad, no 600 unidades.\n   Si hay varias opciones, conserva la presentación solicitada por el cliente.\n3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como\n   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.\n   No uses correos, teléfonos u otros datos personales como identificadores.\n4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.\n   Consulta `getProduct` para obtener el nombre, la presentación y el precio de cada referencia.\n5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`\n   **reemplaza** la cantidad. Para quitar un artículo usa `removeFromCart` o una cantidad\n   menor o igual a cero en `updateCartItem`. Las respuestas contienen el carrito completo actualizado.\n6. **Revisar la compra:** muestra productos, presentaciones, cantidades y total en MXN.\n   Respeta las autorizaciones y confirmaciones de compra de la aplicación cliente.\n7. **Completar la compra:** consulta la documentación de `payCart` para los requisitos del pago.\n   Un HTTP 200 devuelve el recibo y vacía el carrito. Conserva el recibo en el cliente:\n   no hay una ruta para recuperarlo después.\n\n### Ejemplo de recorrido\n\n```http\nGET /products/search?q=Coca-Cola\nGET /cart/cliente123\nPOST /cart/cliente123\nContent-Type: application/json\n\n{\"productId\":\"PRD_1\",\"quantity\":2}\n```\n\nEl último paso agrega dos botellas de Coca-Cola Original de 600 ml a $22.00 MXN cada una.\nEn un carrito inicialmente vacío, el subtotal es **$44.00 MXN**.\nSi ya había una unidad, `POST` deja tres; usa `PUT /cart/cliente123/PRD_1`\ncon `{\"quantity\":2}` si deseas exactamente dos.\n\n## Contrato de datos y moneda\n\n- Solicitudes y respuestas: JSON; envía `Content-Type: application/json` cuando haya cuerpo.\n- Las rutas y claves JSON están en inglés y distinguen mayúsculas: `productId`, `creditCardNumber`,\n  `totalAmount`, `paymentSummary`, `purchasedItems`. Los valores comerciales están en español.\n- **Todos los importes son pesos mexicanos (MXN), nunca USD ni centavos.**\n  `price: 19.5` equivale a $19.50 MXN. No multipliques ni dividas por 100 al enviar o leer precios.\n- `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen\n  también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.\n- Total de una partida = precio unitario × cantidad; total de compra = suma de las partidas.\n  Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.\n  El recibo devuelto por el servidor es la referencia final de la compra.\n- No hay conversión de moneda, descuentos, envío ni recargos calculados por estas rutas.\n  No se proporciona un desglose fiscal; no inventes impuestos o cargos adicionales.\n- El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.\n- Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.\n\n## Búsqueda y filtros\n\n`listProducts` permite combinar `brand`, `presentation` y `category` mediante **AND**.\nLos filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios\nadicionales ni diferencias de unidades. Usa valores del catálogo: `600 ml`, no `0.6 L`.\nCodifica espacios y acentos en la URL con la biblioteca HTTP del cliente.\n\n`searchProducts` hace búsqueda parcial por `id`, `name` y `description`, sin distinguir\nmayúsculas ni acentos. Exige al menos tres caracteres; `cafe` encuentra `Café`.\nNo busca por marca o categoría como campos independientes: usa los filtros para esos casos.\nLos filtros antiguos `size` y `color` no forman parte del contrato; usa `presentation` y `brand`.\n\n## Estado, identidad y alcance\n\nEl catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:\nun reinicio borra los carritos y varios procesos no comparten su contenido.\nPara conservar una sesión, utiliza la misma instancia del servicio.\n`user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios\nni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.\nNo existen rutas de inventario, reservas, entrega, historial de pedidos, cancelación ni reembolsos.\nNo afirmes que una compra fue completada hasta recibir el recibo de `payCart`.\n\n## Errores, reintentos y concurrencia\n\n- **400:** la operación no se pudo completar; lee `detail` y corrige la causa antes de reintentar.\n- **404:** el producto, carrito o artículo solicitado no existe; vuelve a consultar catálogo o carrito.\n- **422:** la solicitud no cumple el esquema; revisa `detail[].loc`, `msg` y `type`.\n  Los mensajes de validación del framework pueden estar en inglés.\n- Los errores 400/404 usan `{\"detail\":\"mensaje\"}`; no se devuelve un recibo de éxito en un error.\n- **No hay claves de idempotencia.** No reintentes ciegamente `addToCart`: sumarías unidades otra vez.\n  Ante una respuesta perdida, consulta `getCart` y reconcilia la cantidad deseada.\n- `updateCartItem` establece una cantidad absoluta. Repetir una eliminación puede devolver 404;\n  consulta el carrito para verificar que el artículo ya no está.\n- No reintentes automáticamente un pago con resultado desconocido. Un carrito vacío no prueba\n  que se completó un pago; no reconstruyas un recibo ni inventes un folio.\n- Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos\n  de concurrencia entre clientes.\n",
+    "description": "\n## Tienda de la Esquina\n\nCatálogo YaGoods con 39 productos: jugos, bebidas con gas, tés, leches de sabores,\nbotanas, galletas y barras de granola y proteína, vendidos por caja.\nLos nombres, descripciones y mensajes comerciales están en español de México.\n\n## Guía de integración para clientes y agentes\n\n1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar\n   por nombre, descripción o identificador. Usa los `id` devueltos; no inventes identificadores.\n2. **Elegir una presentación:** compara `attributes.brand`, `attributes.presentation`,\n   `price`, `currency` y `unitsPerPackage`. Una unidad del carrito es una caja completa;\n   no se venden botellas, latas o bolsas sueltas.\n   Si hay varias opciones, conserva la presentación solicitada por el cliente.\n3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como\n   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.\n   No uses correos, teléfonos u otros datos personales como identificadores.\n4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.\n   Consulta `getProduct` para obtener el nombre, la presentación y el precio de cada referencia.\n5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`\n   **reemplaza** la cantidad. Para quitar un artículo usa `removeFromCart` o una cantidad\n   menor o igual a cero en `updateCartItem`. Las respuestas contienen el carrito completo actualizado.\n6. **Revisar la compra:** muestra productos, presentaciones, cantidades y total en MXN.\n   Respeta las autorizaciones y confirmaciones de compra de la aplicación cliente.\n7. **Completar la compra:** consulta la documentación de `payCart` para los requisitos del pago.\n   Un HTTP 200 devuelve el recibo y vacía el carrito. Conserva el recibo en el cliente:\n   no hay una ruta para recuperarlo después.\n\n### Ejemplo de recorrido\n\n```http\nGET /products/search?q=naranja\nGET /cart/cliente123\nPOST /cart/cliente123\nContent-Type: application/json\n\n{\"productId\":\"YG001\",\"quantity\":2}\n```\n\nEl último paso agrega dos cajas de jugo de naranja, cada caja con cuatro botellas de vidrio de 350 ml.\nCada caja cuesta $125.00 MXN: el subtotal es **$250.00 MXN**, por ocho botellas en total.\nNo multipliques el precio por unitsPerPackage: el precio ya cubre toda la caja.\nSi ya había una caja, `POST` deja tres; usa `PUT /cart/cliente123/YG001`\ncon `{\"quantity\":2}` si deseas exactamente dos.\n\n## Contrato de datos y moneda\n\n- Solicitudes y respuestas: JSON; envía `Content-Type: application/json` cuando haya cuerpo.\n- Las rutas y claves JSON están en inglés y distinguen mayúsculas: `productId`, `creditCardNumber`,\n  `totalAmount`, `paymentSummary`, `purchasedItems`. Los valores comerciales están en español.\n- **Todos los importes son pesos mexicanos (MXN), nunca USD ni centavos.**\n  `price: 19.5` equivale a $19.50 MXN. No multipliques ni dividas por 100 al enviar o leer precios.\n- `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen\n  también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.\n- Total de una partida = precio unitario × cantidad; total de compra = suma de las partidas.\n  Aquí precio unitario significa **precio por caja**. `quantity` cuenta cajas y `unitsPerPackage`\n  cuenta botellas, latas, bolsas o paquetes dentro de una caja, no cajas adicionales.\n  Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.\n  El recibo devuelto por el servidor es la referencia final de la compra.\n- No hay conversión de moneda, descuentos, envío ni recargos calculados por estas rutas.\n  No se proporciona un desglose fiscal; no inventes impuestos o cargos adicionales.\n- El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.\n- Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.\n\n## Imágenes de productos\n\nCada producto incluye `imageUrl`, por ejemplo `/images/products/YG001.webp`.\nResuelve esa ruta con el **origen de esta API**, no con el origen de tu frontend ni con `/products`.\nSi la API está en `https://tienda.example`, la imagen completa es\n`https://tienda.example/images/products/YG001.webp`.\nPuedes usar esa URL en un elemento `<img>` o descargarla con GET: devuelve bytes\n`image/webp` de 512 × 512 píxeles, no JSON ni base64. No requiere autenticación ni una llamada de generación.\nUsa `name` como texto alternativo accesible. Las imágenes son ilustrativas;\nconsulta el nombre, la descripción y la presentación para confirmar qué producto compras.\nLas rutas de archivos estáticos no aparecen como operaciones independientes en este esquema.\nSi una imagen no carga, muestra un recurso visual alternativo; no cambies el producto ni su precio.\nLas respuestas incluyen ETag y Last-Modified para permitir solicitudes condicionales y caché del cliente.\n\n## Búsqueda y filtros\n\n`listProducts` permite combinar `brand`, `presentation` y `category` mediante **AND**.\nLos filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios\nadicionales ni diferencias de unidades. Usa la presentación completa del catálogo,\npor ejemplo `Caja con 4 botellas de vidrio de 350 ml`, no solamente `350 ml`.\nCodifica espacios y acentos en la URL con la biblioteca HTTP del cliente.\n\n`searchProducts` hace búsqueda parcial por `id`, `name` y `description`, sin distinguir\nmayúsculas ni acentos. Exige al menos tres caracteres; `limon` encuentra `limón`.\nNo busca por marca o categoría como campos independientes: usa los filtros para esos casos.\nLos filtros antiguos `size` y `color` no forman parte del contrato; usa `presentation` y `brand`.\n\n## Estado, identidad y alcance\n\nEl catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:\nun reinicio borra los carritos y varios procesos no comparten su contenido.\nPara conservar una sesión, utiliza la misma instancia del servicio.\n`user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios\nni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.\nNo existen rutas de inventario, reservas, entrega, historial de pedidos, cancelación ni reembolsos.\nNo afirmes que una compra fue completada hasta recibir el recibo de `payCart`.\n\n## Errores, reintentos y concurrencia\n\n- **400:** la operación no se pudo completar; lee `detail` y corrige la causa antes de reintentar.\n- **404:** el producto, carrito o artículo solicitado no existe; vuelve a consultar catálogo o carrito.\n- **422:** la solicitud no cumple el esquema; revisa `detail[].loc`, `msg` y `type`.\n  Los mensajes de validación del framework pueden estar en inglés.\n- Los errores 400/404 usan `{\"detail\":\"mensaje\"}`; no se devuelve un recibo de éxito en un error.\n- **No hay claves de idempotencia.** No reintentes ciegamente `addToCart`: sumarías unidades otra vez.\n  Ante una respuesta perdida, consulta `getCart` y reconcilia la cantidad deseada.\n- `updateCartItem` establece una cantidad absoluta. Repetir una eliminación puede devolver 404;\n  consulta el carrito para verificar que el artículo ya no está.\n- No reintentes automáticamente un pago con resultado desconocido. Un carrito vacío no prueba\n  que se completó un pago; no reconstruyas un recibo ni inventes un folio.\n- Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos\n  de concurrencia entre clientes.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -18,7 +18,7 @@
           "Productos"
         ],
         "summary": "Consultar productos",
-        "description": "Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.\n\nSin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND\ny comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:\n`/products?brand=Coca-Cola&presentation=600%20ml`.\nUna lista vacía significa que no hay coincidencias, no un error de conexión.\nUsa `id` como `productId` al agregar al carrito; `price` es el precio de una unidad de esa presentación.",
+        "description": "Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.\n\nSin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND\ny comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:\n`/products?brand=YaGoods&category=Botanas`.\nUna lista vacía significa que no hay coincidencias, no un error de conexión.\nUsa el SKU `id` como `productId` al agregar al carrito; `price` es el precio de una caja completa.",
         "operationId": "listProducts",
         "parameters": [
           {
@@ -36,7 +36,7 @@
               ],
               "description": "Marca exacta del catálogo. No distingue mayúsculas ni acentos.",
               "examples": [
-                "Coca-Cola"
+                "YaGoods"
               ],
               "title": "Brand"
             },
@@ -57,7 +57,7 @@
               ],
               "description": "Presentación exacta; conserva las unidades y espacios del catálogo.",
               "examples": [
-                "600 ml"
+                "Caja con 4 botellas de vidrio de 350 ml"
               ],
               "title": "Presentation"
             },
@@ -78,9 +78,9 @@
               ],
               "description": "Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar.",
               "examples": [
-                "Bebidas",
+                "Jugos y bebidas",
                 "Botanas",
-                "Lácteos"
+                "Barras de granola y proteína"
               ],
               "title": "Category"
             },
@@ -103,15 +103,18 @@
                   "coincidencia": {
                     "value": [
                       {
-                        "id": "PRD_1",
-                        "name": "Coca-Cola Original 600 ml",
-                        "description": "Refresco de cola en botella individual.",
-                        "price": 22.0,
+                        "id": "YG001",
+                        "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+                        "description": "Jugo de naranja sin azúcar añadida.",
+                        "price": 125.0,
                         "currency": "MXN",
+                        "imageUrl": "/images/products/YG001.webp",
+                        "packageType": "caja",
+                        "unitsPerPackage": 4,
                         "attributes": {
-                          "brand": "Coca-Cola",
-                          "presentation": "600 ml",
-                          "category": "Bebidas"
+                          "brand": "YaGoods",
+                          "presentation": "Caja con 4 botellas de vidrio de 350 ml",
+                          "category": "Jugos y bebidas"
                         }
                       }
                     ]
@@ -142,7 +145,7 @@
           "Productos"
         ],
         "summary": "Buscar productos",
-        "description": "Busca productos por identificador, nombre o descripción.\n\nLa búsqueda es parcial, sin distinguir mayúsculas ni acentos. `cafe` encuentra `Café`.\nUna consulta como `PRD_1` también puede encontrar `PRD_10`; para un identificador exacto usa `getProduct`.\nSi no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.\nPara buscar por marca o categoría usa los filtros de `listProducts`.",
+        "description": "Busca productos por identificador, nombre o descripción.\n\nLa búsqueda es parcial, sin distinguir mayúsculas ni acentos. `limon` encuentra `limón`.\nUna consulta como `YG0` encuentra varios SKU; para un identificador exacto usa `getProduct`.\nSi no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.\nPara buscar por marca o categoría usa los filtros de `listProducts`.",
         "operationId": "searchProducts",
         "parameters": [
           {
@@ -158,16 +161,16 @@
             "description": "Busca por identificador, nombre o descripción (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
             "examples": {
               "porNombre": {
-                "summary": "Buscar refresco",
-                "value": "Coca-Cola"
+                "summary": "Buscar jugo de naranja",
+                "value": "naranja"
               },
               "sinAcentos": {
-                "summary": "Buscar café sin escribir el acento",
-                "value": "cafe"
+                "summary": "Buscar limón sin escribir el acento",
+                "value": "limon"
               },
               "porIdentificador": {
-                "summary": "Buscar por identificador",
-                "value": "PRD_1"
+                "summary": "Buscar por SKU",
+                "value": "YG001"
               }
             }
           }
@@ -185,18 +188,21 @@
                   "title": "Response Searchproducts"
                 },
                 "examples": {
-                  "buscarRefresco": {
+                  "buscarJugo": {
                     "value": [
                       {
-                        "id": "PRD_1",
-                        "name": "Coca-Cola Original 600 ml",
-                        "description": "Refresco de cola en botella individual.",
-                        "price": 22.0,
+                        "id": "YG001",
+                        "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+                        "description": "Jugo de naranja sin azúcar añadida.",
+                        "price": 125.0,
                         "currency": "MXN",
+                        "imageUrl": "/images/products/YG001.webp",
+                        "packageType": "caja",
+                        "unitsPerPackage": 4,
                         "attributes": {
-                          "brand": "Coca-Cola",
-                          "presentation": "600 ml",
-                          "category": "Bebidas"
+                          "brand": "YaGoods",
+                          "presentation": "Caja con 4 botellas de vidrio de 350 ml",
+                          "category": "Jugos y bebidas"
                         }
                       }
                     ]
@@ -238,7 +244,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "PRD_1"
+                "YG001"
               ],
               "title": "Product Id"
             },
@@ -256,15 +262,18 @@
                 "examples": {
                   "producto": {
                     "value": {
-                      "id": "PRD_1",
-                      "name": "Coca-Cola Original 600 ml",
-                      "description": "Refresco de cola en botella individual.",
-                      "price": 22.0,
+                      "id": "YG001",
+                      "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+                      "description": "Jugo de naranja sin azúcar añadida.",
+                      "price": 125.0,
                       "currency": "MXN",
+                      "imageUrl": "/images/products/YG001.webp",
+                      "packageType": "caja",
+                      "unitsPerPackage": 4,
                       "attributes": {
-                        "brand": "Coca-Cola",
-                        "presentation": "600 ml",
-                        "category": "Bebidas"
+                        "brand": "YaGoods",
+                        "presentation": "Caja con 4 botellas de vidrio de 350 ml",
+                        "category": "Jugos y bebidas"
                       }
                     }
                   }
@@ -342,7 +351,7 @@
                   "conProductos": {
                     "value": [
                       {
-                        "productId": "PRD_1",
+                        "productId": "YG001",
                         "quantity": 2
                       }
                     ]
@@ -371,7 +380,7 @@
           "Carrito"
         ],
         "summary": "Agregar al carrito",
-        "description": "Agrega un producto al carrito. Si ya existe, incrementa su cantidad.\n\nquantity debe ser un entero mayor que cero. Si había una unidad y envías dos, quedan tres.\nPara dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.\nNo es idempotente: repetir la misma solicitud vuelve a sumar unidades.\nSi pierdes la respuesta, consulta getCart antes de reintentar.",
+        "description": "Agrega un producto al carrito. Si ya existe, incrementa su cantidad.\n\nquantity cuenta cajas completas y debe ser un entero mayor que cero.\nSi había una caja y envías dos, quedan tres. No multipliques quantity por unitsPerPackage.\nPara dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.\nNo es idempotente: repetir la misma solicitud vuelve a sumar unidades.\nSi pierdes la respuesta, consulta getCart antes de reintentar.",
         "operationId": "addToCart",
         "parameters": [
           {
@@ -397,10 +406,10 @@
                 "$ref": "#/components/schemas/CartItem"
               },
               "examples": {
-                "dosRefrescos": {
-                  "summary": "Sumar dos botellas de 600 ml",
+                "dosCajas": {
+                  "summary": "Sumar dos cajas de jugo de naranja, cuatro botellas por caja",
                   "value": {
-                    "productId": "PRD_1",
+                    "productId": "YG001",
                     "quantity": 2
                   }
                 }
@@ -424,7 +433,7 @@
                   "actualizado": {
                     "value": [
                       {
-                        "productId": "PRD_1",
+                        "productId": "YG001",
                         "quantity": 2
                       }
                     ]
@@ -494,7 +503,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "PRD_1"
+                "YG001"
               ],
               "title": "Product Id"
             },
@@ -541,7 +550,7 @@
                   "cantidadDos": {
                     "value": [
                       {
-                        "productId": "PRD_1",
+                        "productId": "YG001",
                         "quantity": 2
                       }
                     ]
@@ -617,7 +626,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "PRD_1"
+                "YG001"
               ],
               "title": "Product Id"
             },
@@ -745,13 +754,13 @@
                   "$ref": "#/components/schemas/PaymentReceipt"
                 },
                 "examples": {
-                  "compraDeDosRefrescos": {
+                  "compraDeDosCajas": {
                     "value": {
                       "status": "success",
                       "message": "Pago procesado correctamente.",
                       "ticketId": "TICKET-8a646941-64c1-4b0a-9e3b-2d9df971bb05",
                       "paymentSummary": {
-                        "totalAmount": 44.0,
+                        "totalAmount": 250.0,
                         "currency": "MXN",
                         "paymentMethod": {
                           "card": "**** **** **** 4444"
@@ -759,11 +768,11 @@
                       },
                       "purchasedItems": [
                         {
-                          "productId": "PRD_1",
-                          "name": "Coca-Cola Original 600 ml",
-                          "unitPrice": 22.0,
+                          "productId": "YG001",
+                          "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+                          "unitPrice": 125.0,
                           "quantity": 2,
-                          "totalPrice": 44.0
+                          "totalPrice": 250.0
                         }
                       ]
                     }
@@ -820,16 +829,16 @@
           "productId": {
             "type": "string",
             "title": "Productid",
-            "description": "Identificador del producto",
+            "description": "SKU del producto",
             "examples": [
-              "PRD_1"
+              "YG001"
             ]
           },
           "quantity": {
             "type": "integer",
             "exclusiveMinimum": 0.0,
             "title": "Quantity",
-            "description": "Unidades de esta presentación. En POST se suman a las existentes.",
+            "description": "Cantidad de cajas completas, no de botellas o bolsas sueltas. En POST se suma.",
             "examples": [
               2
             ]
@@ -976,7 +985,7 @@
             "title": "Totalamount",
             "description": "Suma de todas las partidas en pesos mexicanos (MXN)",
             "examples": [
-              44.0
+              250.0
             ]
           },
           "currency": {
@@ -1003,17 +1012,17 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Identificador único del producto",
+            "description": "SKU del catálogo e identificador único del producto",
             "examples": [
-              "PRD_1"
+              "YG001"
             ]
           },
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Nombre del producto",
+            "description": "Nombre del producto en español de México",
             "examples": [
-              "Coca-Cola Original 600 ml"
+              "Jugo de naranja, 4 botellas de vidrio de 350 ml"
             ]
           },
           "description": {
@@ -1021,16 +1030,16 @@
             "title": "Description",
             "description": "Descripción del producto",
             "examples": [
-              "Refresco de cola en botella individual."
+              "Jugo de naranja sin azúcar añadida."
             ]
           },
           "price": {
             "type": "number",
             "minimum": 0.0,
             "title": "Price",
-            "description": "Precio por unidad en pesos mexicanos (MXN), no centavos",
+            "description": "Precio de toda la caja en pesos mexicanos (MXN), no centavos ni precio por botella",
             "examples": [
-              22.0
+              125.0
             ]
           },
           "currency": {
@@ -1039,6 +1048,32 @@
             "title": "Currency",
             "description": "Moneda de los precios: pesos mexicanos",
             "default": "MXN"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri-reference",
+            "title": "Imageurl",
+            "description": "Ruta de la imagen ilustrativa del producto, relativa al origen de la API. Descárgala con GET sin credenciales. Devuelve image/webp de 512 × 512 píxeles, no JSON.",
+            "examples": [
+              "/images/products/YG001.webp"
+            ]
+          },
+          "packageType": {
+            "type": "string",
+            "title": "Packagetype",
+            "description": "Tipo de empaque que se vende",
+            "examples": [
+              "caja"
+            ]
+          },
+          "unitsPerPackage": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Unitsperpackage",
+            "description": "Unidades contenidas en una caja, no la cantidad de cajas del carrito",
+            "examples": [
+              4
+            ]
           },
           "attributes": {
             "$ref": "#/components/schemas/ProductAttributes"
@@ -1050,10 +1085,13 @@
           "name",
           "description",
           "price",
+          "imageUrl",
+          "packageType",
+          "unitsPerPackage",
           "attributes"
         ],
         "title": "Product",
-        "description": "Producto vendible por unidad; price representa pesos mexicanos, no centavos."
+        "description": "Caja vendible; price es el precio de toda la caja en pesos mexicanos, no centavos."
       },
       "ProductAttributes": {
         "properties": {
@@ -1062,15 +1100,15 @@
             "title": "Brand",
             "description": "Marca del producto",
             "examples": [
-              "Coca-Cola"
+              "YaGoods"
             ]
           },
           "presentation": {
             "type": "string",
             "title": "Presentation",
-            "description": "Contenido o presentación del producto",
+            "description": "Contenido de la caja vendible",
             "examples": [
-              "600 ml"
+              "Caja con 4 botellas de vidrio de 350 ml"
             ]
           },
           "category": {
@@ -1078,7 +1116,7 @@
             "title": "Category",
             "description": "Categoría del producto",
             "examples": [
-              "Bebidas"
+              "Jugos y bebidas"
             ]
           }
         },
@@ -1106,12 +1144,12 @@
           "unitPrice": {
             "type": "number",
             "title": "Unitprice",
-            "description": "Precio por unidad en pesos mexicanos (MXN)"
+            "description": "Precio de una caja completa en pesos mexicanos (MXN)"
           },
           "quantity": {
             "type": "integer",
             "title": "Quantity",
-            "description": "Unidades compradas"
+            "description": "Cantidad de cajas compradas, no de botellas, latas o bolsas individuales"
           },
           "totalPrice": {
             "type": "number",

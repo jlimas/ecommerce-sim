@@ -18,6 +18,8 @@ RUN groupadd --system --gid 1001 appgroup && \
 COPY --link --from=builder /opt/venv /opt/venv
 COPY --link --chown=1001:1001 main.py models.py data.py api_documentation.py ./
 COPY --link --chown=1001:1001 apis/ ./apis/
+COPY --link --chown=1001:1001 catalog/products.csv catalog/localization.json ./catalog/
+COPY --link --chown=1001:1001 static/ ./static/
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

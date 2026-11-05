@@ -10,16 +10,17 @@ from models import ErrorResponse, ValidationErrorResponse
 DESCRIPTION = """
 ## Tienda de la Esquina
 
-Catálogo de una tienda de conveniencia en México: bebidas, botanas, galletas, dulces,
-lácteos, abarrotes, café, comida preparada y artículos de higiene y hogar.
-Los nombres, descripciones y mensajes comerciales están en español.
+Catálogo YaGoods con 39 productos: jugos, bebidas con gas, tés, leches de sabores,
+botanas, galletas y barras de granola y proteína, vendidos por caja.
+Los nombres, descripciones y mensajes comerciales están en español de México.
 
 ## Guía de integración para clientes y agentes
 
 1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar
    por nombre, descripción o identificador. Usa los `id` devueltos; no inventes identificadores.
 2. **Elegir una presentación:** compara `attributes.brand`, `attributes.presentation`,
-   `price` y `currency`. Una botella de 600 ml es una unidad, no 600 unidades.
+   `price`, `currency` y `unitsPerPackage`. Una unidad del carrito es una caja completa;
+   no se venden botellas, latas o bolsas sueltas.
    Si hay varias opciones, conserva la presentación solicitada por el cliente.
 3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como
    `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.
@@ -38,17 +39,18 @@ Los nombres, descripciones y mensajes comerciales están en español.
 ### Ejemplo de recorrido
 
 ```http
-GET /products/search?q=Coca-Cola
+GET /products/search?q=naranja
 GET /cart/cliente123
 POST /cart/cliente123
 Content-Type: application/json
 
-{"productId":"PRD_1","quantity":2}
+{"productId":"YG001","quantity":2}
 ```
 
-El último paso agrega dos botellas de Coca-Cola Original de 600 ml a $22.00 MXN cada una.
-En un carrito inicialmente vacío, el subtotal es **$44.00 MXN**.
-Si ya había una unidad, `POST` deja tres; usa `PUT /cart/cliente123/PRD_1`
+El último paso agrega dos cajas de jugo de naranja, cada caja con cuatro botellas de vidrio de 350 ml.
+Cada caja cuesta $125.00 MXN: el subtotal es **$250.00 MXN**, por ocho botellas en total.
+No multipliques el precio por unitsPerPackage: el precio ya cubre toda la caja.
+Si ya había una caja, `POST` deja tres; usa `PUT /cart/cliente123/YG001`
 con `{"quantity":2}` si deseas exactamente dos.
 
 ## Contrato de datos y moneda
@@ -61,6 +63,8 @@ con `{"quantity":2}` si deseas exactamente dos.
 - `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen
   también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.
 - Total de una partida = precio unitario × cantidad; total de compra = suma de las partidas.
+  Aquí precio unitario significa **precio por caja**. `quantity` cuenta cajas y `unitsPerPackage`
+  cuenta botellas, latas, bolsas o paquetes dentro de una caja, no cajas adicionales.
   Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.
   El recibo devuelto por el servidor es la referencia final de la compra.
 - No hay conversión de moneda, descuentos, envío ni recargos calculados por estas rutas.
@@ -68,15 +72,30 @@ con `{"quantity":2}` si deseas exactamente dos.
 - El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.
 - Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.
 
+## Imágenes de productos
+
+Cada producto incluye `imageUrl`, por ejemplo `/images/products/YG001.webp`.
+Resuelve esa ruta con el **origen de esta API**, no con el origen de tu frontend ni con `/products`.
+Si la API está en `https://tienda.example`, la imagen completa es
+`https://tienda.example/images/products/YG001.webp`.
+Puedes usar esa URL en un elemento `<img>` o descargarla con GET: devuelve bytes
+`image/webp` de 512 × 512 píxeles, no JSON ni base64. No requiere autenticación ni una llamada de generación.
+Usa `name` como texto alternativo accesible. Las imágenes son ilustrativas;
+consulta el nombre, la descripción y la presentación para confirmar qué producto compras.
+Las rutas de archivos estáticos no aparecen como operaciones independientes en este esquema.
+Si una imagen no carga, muestra un recurso visual alternativo; no cambies el producto ni su precio.
+Las respuestas incluyen ETag y Last-Modified para permitir solicitudes condicionales y caché del cliente.
+
 ## Búsqueda y filtros
 
 `listProducts` permite combinar `brand`, `presentation` y `category` mediante **AND**.
 Los filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios
-adicionales ni diferencias de unidades. Usa valores del catálogo: `600 ml`, no `0.6 L`.
+adicionales ni diferencias de unidades. Usa la presentación completa del catálogo,
+por ejemplo `Caja con 4 botellas de vidrio de 350 ml`, no solamente `350 ml`.
 Codifica espacios y acentos en la URL con la biblioteca HTTP del cliente.
 
 `searchProducts` hace búsqueda parcial por `id`, `name` y `description`, sin distinguir
-mayúsculas ni acentos. Exige al menos tres caracteres; `cafe` encuentra `Café`.
+mayúsculas ni acentos. Exige al menos tres caracteres; `limon` encuentra `limón`.
 No busca por marca o categoría como campos independientes: usa los filtros para esos casos.
 Los filtros antiguos `size` y `color` no forman parte del contrato; usa `presentation` y `brand`.
 
@@ -140,28 +159,28 @@ ProductId = Annotated[
     Path(
         description="Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. "
         "En operaciones de carrito debe corresponder al productId de la partida.",
-        examples=["PRD_1"],
+        examples=["YG001"],
     ),
 ]
 
 PRODUCT_EXAMPLE = PRODUCTS[0]
-CART_EXAMPLE = [{"productId": "PRD_1", "quantity": 2}]
+CART_EXAMPLE = [{"productId": "YG001", "quantity": 2}]
 RECEIPT_EXAMPLE = {
     "status": "success",
     "message": "Pago procesado correctamente.",
     "ticketId": "TICKET-8a646941-64c1-4b0a-9e3b-2d9df971bb05",
     "paymentSummary": {
-        "totalAmount": 44.0,
+        "totalAmount": 250.0,
         "currency": "MXN",
         "paymentMethod": {"card": "**** **** **** 4444"},
     },
     "purchasedItems": [
         {
-            "productId": "PRD_1",
-            "name": "Coca-Cola Original 600 ml",
-            "unitPrice": 22.0,
+            "productId": "YG001",
+            "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
+            "unitPrice": 125.0,
             "quantity": 2,
-            "totalPrice": 44.0,
+            "totalPrice": 250.0,
         }
     ],
 }

@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from api_documentation import DESCRIPTION, TAGS, VALIDATION_RESPONSE
 from apis import cart, payments, products
@@ -17,6 +20,7 @@ app = FastAPI(
 app.include_router(products.router, tags=["Productos"])
 app.include_router(cart.router, tags=["Carrito"])
 app.include_router(payments.router, tags=["Pagos"])
+app.mount("/images", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="images")
 
 
 @app.get("/", response_model=RootResponse, include_in_schema=False)

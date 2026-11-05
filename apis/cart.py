@@ -51,14 +51,18 @@ async def add_to_cart(
     item: CartItem = Body(
         ...,
         openapi_examples={
-            "dosRefrescos": {"summary": "Sumar dos botellas de 600 ml", "value": {"productId": "PRD_1", "quantity": 2}}
+            "dosCajas": {
+                "summary": "Sumar dos cajas de jugo de naranja, cuatro botellas por caja",
+                "value": {"productId": "YG001", "quantity": 2},
+            }
         },
     ),
 ) -> list[dict]:
     """
     Agrega un producto al carrito. Si ya existe, incrementa su cantidad.
 
-    quantity debe ser un entero mayor que cero. Si había una unidad y envías dos, quedan tres.
+    quantity cuenta cajas completas y debe ser un entero mayor que cero.
+    Si había una caja y envías dos, quedan tres. No multipliques quantity por unitsPerPackage.
     Para dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.
     No es idempotente: repetir la misma solicitud vuelve a sumar unidades.
     Si pierdes la respuesta, consulta getCart antes de reintentar.
