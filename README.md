@@ -21,7 +21,7 @@ Consulta [API.md](API.md) y los ejemplos de `requests/*.http` para explorar prod
 
 ## Catálogo y moneda
 
-El catálogo contiene 60 productos cargados de `catalog/products.csv`: 6 consolas, 29 videojuegos, 22 accesorios, 2 pantallas y 1 coleccionable, con sus SKU originales. Por ejemplo, `45467911` es Star Fox para Nintendo Switch 2 a $1,199.20 MXN (precio de lista $1,499.00 MXN, 20% de descuento). Los productos incluyen marca, plataforma y categoría; se pueden filtrar por estos atributos y buscar por nombre, descripción, etiqueta o SKU sin distinguir mayúsculas ni acentos.
+El catálogo contiene 60 productos cargados de `catalog/products.csv`: 6 consolas, 29 videojuegos, 22 accesorios, 2 pantallas y 1 coleccionable, con sus SKU originales. Por ejemplo, `45467911` es Star Fox para Nintendo Switch 2 a $1,199.20 MXN (precio de lista $1,499.00 MXN, 20% de descuento). Los productos incluyen marca, plataforma y categoría. `GET /products` combina en una sola llamada filtros por plataforma, categoría, marca, etiquetas, texto libre y rango de precio, con orden y límite; acepta nombres cortos y sinónimos (`Switch 2`, `PS5`, `juegos`, `familiar`), ignora parámetros vacíos o `null` y responde 400 con los valores válidos cuando un filtro no existe en el catálogo. Ejemplo: `/products?platform=Switch 2&category=Videojuegos&tag=familia&maxPrice=1800`.
 
 `price` es el precio vigente de una pieza y el importe que se cobra; `listPrice` y `discountPercent` informan el precio de lista y el descuento ya aplicado. `quantity` cuenta piezas: dos piezas de `45467911` cuestan $2,398.40 MXN. `tags` describe género, público y uso (`multijugador`, `nostalgia`, `mundo-abierto`). No se maneja inventario: todos los productos están disponibles en cualquier cantidad.
 
@@ -47,6 +47,12 @@ El script conserva los archivos existentes. Puedes seleccionar un producto con `
 
 La pasarela de pago es de prueba: **no realiza cargos reales**. Usa únicamente datos ficticios, por ejemplo la tarjeta `1111222233334444` y el PIN `4444`. El PIN debe coincidir con los últimos cuatro dígitos de la tarjeta. **No envíes tarjetas ni NIP bancarios reales.** Estas reglas también aparecen en la operación de pago del esquema OpenAPI.
 
+## Registros
+
+Cada operación escribe una línea en stdout con el formato `fecha NIVEL arkanoid operación {json}`: los parámetros recibidos y los valores del catálogo a los que se resolvieron, el número de resultados y los primeros SKU, los cambios del carrito y los recibos (folio, total y partidas). Los errores 400, 404 y 422 de las operaciones se registran como `WARNING` con su `detail`. `productQueryCleanup` muestra cuando se descartaron parámetros vacíos o `null` o se normalizaron precios. Nunca se registran números de tarjeta ni PIN. Ajusta el nivel con `LOG_LEVEL` (por defecto `INFO`).
+
+El access log de uvicorn omite las respuestas 404, que en su mayoría son escáneres buscando archivos como `/.env`; los 404 de negocio (producto o carrito inexistente) siguen apareciendo como operaciones.
+
 ## Estructura y almacenamiento
 
 - `main.py`: aplicación FastAPI y registro de rutas.
@@ -57,6 +63,8 @@ La pasarela de pago es de prueba: **no realiza cargos reales**. Usa únicamente 
 - `sync_catalog_images.py`: copia local y optimización de las imágenes del CSV.
 - `catalog/`: CSV de origen, nombres de categorías y decisiones de normalización.
 - `data.py`: carga del catálogo local y carritos en memoria.
+- `catalog_query.py`: filtros tolerantes, sinónimos, búsqueda por texto y ordenamiento del catálogo.
+- `app_logging.py`: registro de operaciones y filtro de respuestas 404 en el access log.
 - `models.py`: contratos Pydantic de solicitudes y respuestas.
 - `apis/`: operaciones de productos, carrito y pagos.
 - `requests/`: ejemplos de solicitudes HTTP.

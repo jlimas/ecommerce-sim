@@ -10,6 +10,7 @@ from api_documentation import (
     UserId,
     success_response,
 )
+from app_logging import log_event
 from data import CARTS, PRODUCTS
 from models import CartItem, CartItemUpdate
 
@@ -35,6 +36,7 @@ async def get_cart(user_id: UserId) -> list[dict]:
     """
     if user_id not in CARTS:
         CARTS[user_id] = []
+    log_event("getCart", userId=user_id, cart=CARTS[user_id])
     return CARTS[user_id]
 
 
@@ -86,6 +88,7 @@ async def add_to_cart(
     else:
         CARTS[user_id].append(item.model_dump(by_alias=True))
 
+    log_event("addToCart", userId=user_id, productId=item.product_id, added=item.quantity, cart=CARTS[user_id])
     return CARTS[user_id]
 
 
@@ -133,6 +136,7 @@ async def update_cart_item(
     if item["quantity"] <= 0:
         CARTS[user_id] = [i for i in CARTS[user_id] if i["productId"] != product_id]
 
+    log_event("updateCartItem", userId=user_id, productId=product_id, quantity=update.quantity, cart=CARTS[user_id])
     return CARTS[user_id]
 
 
@@ -163,4 +167,5 @@ async def remove_from_cart(user_id: UserId, product_id: ProductId) -> list[dict]
     if len(CARTS[user_id]) == original_cart_size:
         raise HTTPException(status_code=404, detail="Producto no encontrado en el carrito")
 
+    log_event("removeFromCart", userId=user_id, productId=product_id, cart=CARTS[user_id])
     return CARTS[user_id]

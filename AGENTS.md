@@ -50,6 +50,9 @@
 - Preserve source SKUs and numeric MXN prices. `price` is the current (offer) price per piece; `listPrice` and `discountPercent` are informational; `quantity` counts pieces
 - No inventory: supply is unlimited, products have no `stock` field and carts/payments never check availability
 - See `catalog/README.md` for source inconsistencies and normalization decisions
+- Product filtering, synonyms, text search and sorting live in `catalog_query.py`; `listProducts` returns 400 with valid values for unknown filter values instead of a misleading `[]`
+- Log every operation with `app_logging.log_event` (operation name + JSON fields); never log card numbers or PINs. The uvicorn access log hides 404s (scanner noise)
+- New top-level modules must be added to the `COPY` line in `Dockerfile`
 - Product images are local WebP files in `static/products/`, served through each product's `imageUrl`
 - `sync_catalog_images.py` downloads source images; `generate_product_images.py` is optional future AI generation
 - Never generate images or fetch remote catalog data during startup or requests

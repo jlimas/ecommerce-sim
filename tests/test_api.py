@@ -83,8 +83,101 @@ class StoreAPITests(unittest.TestCase):
         self.assertEqual({p["attributes"]["platform"] for p in switch}, {"Nintendo Switch"})
         self.assertEqual(len(switch), 13)
 
-    def test_no_filter_matches(self) -> None:
-        self.assertEqual(self.client.get("/products", params={"brand": "Inexistente"}).json(), [])
+    def test_unknown_filter_values_return_400_with_valid_values(self) -> None:
+        for params, valid in [
+            ({"brand": "Inexistente"}, "Nintendo"),
+            ({"platform": "Switch 3"}, "Nintendo Switch 2"),
+            ({"category": "Ropa"}, "Videojuegos"),
+            ({"tag": "familia,terror"}, "multijugador"),
+            ({"sort": "cheap"}, "priceAsc"),
+        ]:
+            with self.subTest(params=params):
+                response = self.client.get("/products", params=params)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(valid, response.json()["detail"])
+
+    def test_valid_filters_without_matches_return_empty_list(self) -> None:
+        response = self.client.get("/products", params={"category": "Pantallas", "maxPrice": 10})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_platform_aliases_keep_switch_generations_apart(self) -> None:
+        def platforms(value: str) -> set[str]:
+            response = self.client.get("/products", params={"platform": value})
+            self.assertEqual(response.status_code, 200, response.text)
+            return {p["attributes"]["platform"] for p in response.json()}
+
+        for value in ("Switch 2", "switch2", "NS2", "nintendo-switch-2"):
+            self.assertEqual(platforms(value), {"Nintendo Switch 2"})
+        for value in ("Switch", "nintendo switch"):
+            self.assertEqual(platforms(value), {"Nintendo Switch"})
+        self.assertEqual(platforms("PS5"), {"PlayStation 5"})
+        self.assertEqual(platforms("Xbox Series X"), {"Xbox Series"})
+
+    def test_category_brand_and_tag_aliases(self) -> None:
+        for params, expected in [
+            ({"category": "juegos"}, 29),
+            ({"category": "videojuego"}, 29),
+            ({"category": "consola"}, 6),
+            ({"brand": "Sony"}, 8),
+            ({"tag": "familiar"}, 9),
+            ({"tag": "mundo abierto"}, 5),
+            ({"tag": "Multiplayer"}, 13),
+        ]:
+            with self.subTest(params=params):
+                self.assertEqual(len(self.client.get("/products", params=params).json()), expected)
+
+    def test_tags_are_combined_with_and(self) -> None:
+        products = self.client.get("/products", params={"tag": "familia,multijugador"}).json()
+        self.assertTrue(products)
+        for product in products:
+            self.assertTrue({"familia", "multijugador"} <= set(product["tags"]))
+
+    def test_nullish_and_empty_parameters_are_ignored(self) -> None:
+        for value in ("", "null", "None", "undefined", "todos", "cualquiera"):
+            with self.subTest(value=value):
+                params = {name: value for name in ("brand", "platform", "category", "tag", "q", "maxPrice", "sort")}
+                response = self.client.get("/products", params=params)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(len(response.json()), 60)
+
+    def test_price_range_accepts_common_formats(self) -> None:
+        for value in ("1800", "1800.00", "$1,800", "1800 MXN"):
+            with self.subTest(value=value):
+                products = self.client.get("/products", params={"maxPrice": value}).json()
+                self.assertTrue(products)
+                self.assertTrue(all(p["price"] <= 1800 for p in products))
+        products = self.client.get("/products", params={"min_price": 10000, "max_price": 14000}).json()
+        self.assertTrue(products)
+        self.assertTrue(all(10000 <= p["price"] <= 14000 for p in products))
+        self.assertEqual(self.client.get("/products", params={"minPrice": 2000, "maxPrice": 1800}).status_code, 400)
+
+    def test_family_games_for_switch_2_under_budget_in_one_call(self) -> None:
+        response = self.client.get(
+            "/products",
+            params={"platform": "Switch 2", "category": "Videojuegos", "tag": "familia", "maxPrice": 1800},
+        )
+        self.assertEqual({p["id"] for p in response.json()}, {"45276185", "45397520", "44860443", "44860442"})
+
+    def test_text_query_combines_with_filters(self) -> None:
+        products = self.client.get("/products", params={"platform": "Switch 2", "q": "juegos de mario"}).json()
+        self.assertTrue(products)
+        for product in products:
+            self.assertEqual(product["attributes"]["platform"], "Nintendo Switch 2")
+            self.assertIn("mario", (product["name"] + product["description"]).lower())
+        self.assertEqual(self.client.get("/products", params={"q": "ab"}).status_code, 400)
+
+    def test_sort_and_limit(self) -> None:
+        products = self.client.get("/products", params={"sort": "priceAsc", "limit": 5}).json()
+        self.assertEqual(len(products), 5)
+        prices = [p["price"] for p in products]
+        self.assertEqual(prices, sorted(prices))
+        self.assertEqual(prices[0], min(p["price"] for p in PRODUCTS))
+        descending = self.client.get("/products", params={"sort": "pricedesc"}).json()
+        self.assertEqual(descending[0]["price"], max(p["price"] for p in PRODUCTS))
+        discounts = [p["discountPercent"] for p in self.client.get("/products", params={"sort": "discountDesc"}).json()]
+        self.assertEqual(discounts, sorted(discounts, reverse=True))
+        self.assertEqual(self.client.get("/products", params={"limit": 0}).status_code, 422)
 
     def test_search(self) -> None:
         for query, product_id in [
@@ -250,7 +343,9 @@ class StoreAPITests(unittest.TestCase):
         self.assertEqual(schema["info"]["title"], "Arkanoid")
         self.assertIn("MXN", schema["info"]["description"])
         filters = {p["name"] for p in schema["paths"]["/products"]["get"]["parameters"]}
-        self.assertEqual(filters, {"brand", "platform", "category"})
+        self.assertEqual(
+            filters, {"brand", "platform", "category", "tag", "q", "minPrice", "maxPrice", "sort", "limit"}
+        )
         payment_docs = schema["paths"]["/payments/{user_id}"]["post"]["description"]
         self.assertIn("mock", payment_docs)
         self.assertIn("no realiza cargos reales", payment_docs)

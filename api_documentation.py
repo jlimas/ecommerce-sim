@@ -4,6 +4,8 @@ from typing import Annotated, Any
 
 from fastapi import Path
 
+from catalog_query import BRANDS, CATEGORIES, PLATFORMS, SORT_OPTIONS
+from catalog_query import TAGS as CATALOG_TAGS
 from data import PRODUCTS
 from models import ErrorResponse, ValidationErrorResponse
 
@@ -16,8 +18,11 @@ Los nombres, descripciones y mensajes comerciales están en español de México.
 
 ## Guía de integración para clientes y agentes
 
-1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar
-   por nombre, descripción, etiqueta o identificador. Usa los `id` devueltos como `productId`;
+1. **Descubrir productos:** usa `listProducts` con los filtros que expresen la petición del cliente
+   (plataforma, categoría, etiqueta, rango de precio, texto libre y orden) en **una sola llamada**.
+   Por ejemplo, "juegos familiares para Switch 2 de hasta $1,800" es
+   `GET /products?platform=Nintendo Switch 2&category=Videojuegos&tag=familia&maxPrice=1800`.
+   `searchProducts` es un atajo de solo texto. Usa los `id` devueltos como `productId`;
    no inventes identificadores de producto.
 2. **Elegir un producto:** compara `attributes.platform`, `attributes.brand`, `attributes.category`,
    `price`, `listPrice` y `discountPercent`. Confirma que la plataforma del videojuego o accesorio
@@ -92,26 +97,7 @@ Las rutas de archivos estáticos no aparecen como operaciones independientes en 
 Si una imagen no carga, muestra un recurso visual alternativo; no cambies el producto ni su precio.
 Las respuestas incluyen ETag y Last-Modified para permitir solicitudes condicionales y caché del cliente.
 
-## Búsqueda y filtros
-
-`listProducts` permite combinar `brand`, `platform` y `category` mediante **AND**.
-Los filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios
-adicionales ni nombres abreviados. Usa la plataforma completa del catálogo,
-por ejemplo `Nintendo Switch 2`, no solamente `Switch 2`; `Nintendo Switch` y `Nintendo Switch 2`
-son plataformas distintas. Las categorías son `Consolas`, `Videojuegos`, `Accesorios`,
-`Pantallas` y `Coleccionables`.
-Codifica espacios y acentos en la URL con la biblioteca HTTP del cliente.
-`brand` conserva la marca del catálogo: en varios videojuegos y accesorios es la marca de la consola
-(por ejemplo, `Nintendo`), no la del estudio o editor del juego.
-
-`searchProducts` hace búsqueda parcial por `id`, `name`, `description` y `tags`, sin distinguir
-mayúsculas ni acentos. Exige al menos tres caracteres; `pokemon` encuentra `Pokémon`.
-Las etiquetas describen género, público y uso, en minúsculas, sin acentos y con guiones:
-`multijugador`, `nostalgia`, `familia`, `mundo-abierto`, `un-jugador`, `preventa`.
-No busca por marca, plataforma o categoría como campos independientes: usa los filtros para esos casos.
-Los filtros `presentation`, `size` y `color` y los campos `packageType` y `unitsPerPackage`
-de versiones anteriores ya no forman parte del contrato.
-
+{search_guide}
 ## Estado, identidad y alcance
 
 El catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:
@@ -141,6 +127,66 @@ No afirmes que una compra fue completada hasta recibir el recibo de `payCart`.
 - Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos
   de concurrencia entre clientes.
 """
+
+SEARCH_GUIDE = f"""## Búsqueda y filtros
+
+`listProducts` combina todos sus parámetros mediante **AND** y todos son opcionales:
+
+| Parámetro | Qué hace | Ejemplo |
+| --- | --- | --- |
+| `platform` | Plataforma compatible | `Nintendo Switch 2` |
+| `category` | Tipo de producto | `Videojuegos` |
+| `brand` | Marca del catálogo | `Nintendo` |
+| `tag` | Una o más etiquetas separadas por comas; el producto debe tener todas | `familia,multijugador` |
+| `q` | Texto libre en id, nombre, descripción y etiquetas | `mario` |
+| `minPrice` / `maxPrice` | Rango inclusivo sobre `price` (precio vigente con descuento), en MXN | `maxPrice=1800` |
+| `sort` | Orden del resultado | `priceAsc` |
+| `limit` | Máximo de productos devueltos, después de ordenar | `10` |
+
+**Valores tolerantes.** `platform`, `category`, `brand` y `tag` ignoran mayúsculas, acentos, guiones,
+espacios repetidos y plurales, y aceptan nombres cortos y sinónimos comunes:
+`Switch 2`, `switch2` o `NS2` equivalen a `Nintendo Switch 2`; `Switch` equivale a `Nintendo Switch`
+(nunca incluye Switch 2); `PS5` a `PlayStation 5`; `Xbox` o `Series X` a `Xbox Series`;
+`juegos` o `videojuego` a `Videojuegos`; `familiar` o `infantil` a la etiqueta `familia`;
+`mundo abierto` a `mundo-abierto`; `Sony` a la marca `PlayStation`.
+Los precios aceptan `1800`, `1800.50`, `$1,800` o `1800 MXN`; la coma es separador de miles.
+`min_price` y `max_price` también se aceptan como nombres de parámetro.
+
+**Parámetros vacíos.** Un parámetro ausente, vacío o con `null`, `undefined`, `todos` o `cualquiera`
+se ignora: no filtra. Envía únicamente los filtros que el cliente pidió.
+
+**Errores en vez de listas vacías engañosas.** Si un valor de `platform`, `category`, `brand`, `tag`
+o `sort` no corresponde a nada del catálogo, la respuesta es **400** y `detail` enumera los valores
+válidos; corrige el valor y vuelve a consultar. Un **200 con `[]`** significa que los valores son
+válidos pero ningún producto cumple **todos** los filtros a la vez: relaja un filtro (por ejemplo
+`maxPrice` o `tag`) en lugar de concluir que el catálogo está vacío. El catálogo nunca está vacío:
+`GET /products` sin parámetros devuelve los {len(PRODUCTS)} productos.
+
+Valores del catálogo, de mayor a menor número de productos:
+
+- **platform:** {", ".join(f"`{v}`" for v in PLATFORMS)}.
+  `Nintendo Switch` y `Nintendo Switch 2` son plataformas distintas; no supongas compatibilidad
+  entre ellas si la descripción del producto no la indica. `Nintendo` corresponde a un solo
+  accesorio; para todo lo de Nintendo usa `brand=Nintendo`.
+- **category:** {", ".join(f"`{v}`" for v in CATEGORIES)}.
+- **brand:** {", ".join(f"`{v}`" for v in BRANDS)}. En varios videojuegos y accesorios es la marca de la
+  consola (por ejemplo `Nintendo`), no la del estudio o editor del juego.
+- **tag:** {", ".join(f"`{v}`" for v in CATALOG_TAGS)}.
+
+**Texto libre (`q`).** Busca sin distinguir mayúsculas ni acentos en `id`, `name`, `description` y
+`tags`; requiere al menos tres letras o dígitos. Primero busca la frase completa; si no aparece,
+devuelve los productos que contienen todas las palabras significativas (ignora artículos y
+preposiciones como `de`, `para` o `la`). `pokemon` encuentra `Pokémon`; `4467` encuentra varios SKU.
+No busca en marca, plataforma ni categoría como campos: usa sus filtros. Con `q` y sin `sort`,
+el resultado empieza por las coincidencias de la frase completa.
+
+**Orden (`sort`).** {"; ".join(f"`{k}`: {v}" for k, v in SORT_OPTIONS.items())}
+
+Codifica espacios y acentos en la URL con la biblioteca HTTP del cliente.
+Los filtros `presentation`, `size` y `color` y los campos `packageType`, `unitsPerPackage` y `stock`
+de versiones anteriores ya no forman parte del contrato.
+"""
+DESCRIPTION = DESCRIPTION.replace("{search_guide}", SEARCH_GUIDE)
 
 TAGS = [
     {
@@ -242,4 +288,15 @@ CART_NOT_FOUND = error_response(
     "Consulta getCart para verificar el carrito y sus partidas antes de modificarlo.",
     carritoInexistente="Carrito no encontrado para el cliente",
     partidaInexistente="Producto no encontrado en el carrito",
+)
+
+PRODUCT_FILTER_ERRORS = error_response(
+    400,
+    "Un valor de filtro no existe en el catálogo o el rango de precios no es válido. detail explica la causa "
+    "y, para platform, category, brand, tag y sort, enumera todos los valores válidos. "
+    "Corrige ese parámetro y vuelve a consultar; no concluyas que el catálogo está vacío.",
+    plataformaDesconocida="Plataforma no reconocida: 'Switch 3'. Valores válidos: " + ", ".join(PLATFORMS) + ".",
+    etiquetaDesconocida="Etiqueta no reconocida: 'terror'. Valores válidos: " + ", ".join(CATALOG_TAGS) + ".",
+    rangoInvalido="minPrice (2000.0) no puede ser mayor que maxPrice (1800.0).",
+    consultaCorta="q requiere al menos 3 letras o dígitos.",
 )

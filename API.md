@@ -12,9 +12,26 @@ Las rutas y las claves JSON conservan sus nombres en inglés para facilitar las 
 
 ### `GET /products`
 
-Consulta el catálogo. Permite combinar filtros exactos por `brand`, `platform` y `category`, sin distinguir mayúsculas ni acentos.
+Consulta el catálogo con filtros opcionales que se combinan con AND. Expresa la petición completa del cliente en una sola llamada.
 
-Ejemplos: `/products?category=Videojuegos`, `/products?platform=Nintendo%20Switch%202`, `/products?brand=Xbox`.
+| Parámetro | Descripción |
+| --- | --- |
+| `platform` | Plataforma compatible. Acepta `Switch 2`, `NS2`, `PS5`, `Xbox`; `Switch` es Nintendo Switch y nunca incluye Switch 2. |
+| `category` | `Consolas`, `Videojuegos`, `Accesorios`, `Pantallas`, `Coleccionables`; acepta singular, plural y `juegos`. |
+| `brand` | Marca del catálogo; `Sony` → PlayStation, `Microsoft` → Xbox. |
+| `tag` | Una o más etiquetas separadas por comas, todas requeridas; acepta sinónimos como `familiar` → `familia`. |
+| `q` | Texto libre en id, nombre, descripción y etiquetas (mínimo 3 caracteres). |
+| `minPrice` / `maxPrice` | Rango inclusivo sobre `price` en MXN; acepta `1800`, `$1,800` o `1800 MXN`. |
+| `sort` | `relevance`, `priceAsc`, `priceDesc`, `discountDesc` o `nameAsc`. |
+| `limit` | Máximo de productos devueltos (1-100), después de ordenar. |
+
+Ejemplos:
+
+- `/products?platform=Switch%202&category=Videojuegos&tag=familia&maxPrice=1800`: juegos familiares para Switch 2 de hasta $1,800 MXN.
+- `/products?platform=PS5&category=Accesorios&sort=priceAsc&limit=5`: los cinco accesorios más baratos para PS5.
+- `/products?platform=Switch%202&q=mario`: productos de Mario para Switch 2.
+
+Los parámetros vacíos o con `null`, `undefined`, `todos` o `cualquiera` se ignoran. Un valor de `platform`, `category`, `brand`, `tag` o `sort` que no existe en el catálogo devuelve **400** con la lista de valores válidos en `detail`; un rango con `minPrice` mayor que `maxPrice` también devuelve 400. `[]` significa que los filtros son válidos pero ningún producto los cumple todos a la vez.
 
 ```json
 [
@@ -37,7 +54,7 @@ Ejemplos: `/products?category=Videojuegos`, `/products?platform=Nintendo%20Switc
 ]
 ```
 
-Las categorías son `Consolas`, `Videojuegos`, `Accesorios`, `Pantallas` y `Coleccionables`. `platform` usa el valor completo del catálogo: `Nintendo Switch` y `Nintendo Switch 2` son plataformas distintas. Los campos `packageType` y `unitsPerPackage` y el filtro `presentation` de la versión anterior ya no existen.
+`Nintendo Switch` y `Nintendo Switch 2` son plataformas distintas. Los campos `packageType` y `unitsPerPackage` y el filtro `presentation` de la versión anterior ya no existen.
 
 `price` es el precio vigente de una pieza, con el descuento ya aplicado, y es el importe que se cobra. `listPrice` y `discountPercent` son informativos; no vuelvas a aplicar el descuento. El carrito cuenta piezas. No hay límite de existencias: todos los productos están disponibles en cualquier cantidad. El catálogo usa los 60 SKU del CSV de origen, con precios en MXN.
 
@@ -45,7 +62,7 @@ Las categorías son `Consolas`, `Videojuegos`, `Accesorios`, `Pantallas` y `Cole
 
 ### `GET /products/search?q=pokemon`
 
-Busca coincidencias parciales en el identificador, nombre, descripción o etiquetas (`tags`). `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `pokemon` encuentra `Pokémon`, y `multijugador` encuentra los productos con esa etiqueta. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
+Atajo de solo texto, equivalente a `/products?q=...`. Busca coincidencias parciales en el identificador, nombre, descripción o etiquetas (`tags`); si la frase completa no aparece, devuelve los productos con todas sus palabras significativas. `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `pokemon` encuentra `Pokémon`, y `multijugador` encuentra los productos con esa etiqueta. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
 
 ### `GET /products/{product_id}`
 

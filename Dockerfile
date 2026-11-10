@@ -16,7 +16,7 @@ LABEL org.opencontainers.image.title="Arkanoid"
 RUN groupadd --system --gid 1001 appgroup && \
     useradd --system --uid 1001 --gid appgroup appuser
 COPY --link --from=builder /opt/venv /opt/venv
-COPY --link --chown=1001:1001 main.py models.py data.py api_documentation.py ./
+COPY --link --chown=1001:1001 main.py models.py data.py api_documentation.py catalog_query.py app_logging.py ./
 COPY --link --chown=1001:1001 apis/ ./apis/
 COPY --link --chown=1001:1001 catalog/products.csv catalog/localization.json ./catalog/
 COPY --link --chown=1001:1001 static/ ./static/

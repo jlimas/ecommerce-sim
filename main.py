@@ -1,11 +1,17 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from api_documentation import DESCRIPTION, TAGS, VALIDATION_RESPONSE
 from apis import cart, payments, products
+from app_logging import configure_logging, log_http_exception, log_validation_error
+from catalog_query import ProductQueryCleanupMiddleware
 from models import RootResponse
+
+configure_logging()
 
 app = FastAPI(
     title="Arkanoid",
@@ -15,6 +21,9 @@ app = FastAPI(
     servers=[{"url": "/", "description": "Usa el mismo origen donde se sirve este esquema OpenAPI."}],
     responses=VALIDATION_RESPONSE,
 )
+app.add_middleware(ProductQueryCleanupMiddleware)
+app.add_exception_handler(StarletteHTTPException, log_http_exception)
+app.add_exception_handler(RequestValidationError, log_validation_error)
 
 # Include routers from the apis module
 app.include_router(products.router, tags=["Productos"])

@@ -10,6 +10,18 @@ GET {{baseUrl}}/products?brand=Nintendo&platform=Nintendo%20Switch%202 HTTP/1.1
 ### Filtrar por categoría
 GET {{baseUrl}}/products?category=Videojuegos HTTP/1.1
 
+### Juegos familiares para Switch 2 de hasta $1,800 MXN, del más barato al más caro
+GET {{baseUrl}}/products?platform=Switch%202&category=Videojuegos&tag=familia&maxPrice=1800&sort=priceAsc HTTP/1.1
+
+### Los cinco accesorios más baratos para PS5
+GET {{baseUrl}}/products?platform=PS5&category=Accesorios&sort=priceAsc&limit=5 HTTP/1.1
+
+### Texto libre combinado con plataforma
+GET {{baseUrl}}/products?platform=Switch%202&q=mario HTTP/1.1
+
+### Valor desconocido: devuelve 400 con las plataformas válidas
+GET {{baseUrl}}/products?platform=Switch%203 HTTP/1.1
+
 ### Buscar productos sin distinguir acentos
 GET {{baseUrl}}/products/search?q=pokemon HTTP/1.1
 

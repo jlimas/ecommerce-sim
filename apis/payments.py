@@ -4,6 +4,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Body, HTTPException
 
 from api_documentation import RECEIPT_EXAMPLE, UserId, error_response, success_response
+from app_logging import log_event
 from data import CARTS, PRODUCTS
 from models import PaymentReceipt, PaymentRequest
 
@@ -139,6 +140,14 @@ async def process_payment(
 
     # 3. Generate ticket ID
     ticket_id = f"TICKET-{uuid.uuid4()}"
+
+    log_event(
+        "payCart",
+        userId=user_id,
+        ticketId=ticket_id,
+        totalAmount=float(total_cost),
+        items=[{"productId": i["productId"], "quantity": i["quantity"]} for i in purchased_items],
+    )
 
     # 4. Assemble the full response
     return {
