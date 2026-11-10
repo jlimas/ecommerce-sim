@@ -30,6 +30,8 @@ async def get_cart(user_id: UserId) -> list[dict]:
     Si no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente
     productId y quantity: consulta getProduct para conocer precios, nombres y plataformas.
     Usa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.
+    El user_id lo generas tú: cualquier texto no vacío sin datos personales, como cliente-7f3a9c.
+    No requiere sesión, login ni registro; reutiliza el mismo valor durante toda la conversación.
     """
     if user_id not in CARTS:
         CARTS[user_id] = []
@@ -66,6 +68,8 @@ async def add_to_cart(
     Para dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.
     No es idempotente: repetir la misma solicitud vuelve a sumar unidades.
     Si pierdes la respuesta, consulta getCart antes de reintentar.
+    El user_id lo generas tú: cualquier texto no vacío sin datos personales, como cliente-7f3a9c.
+    No requiere sesión, login ni registro; reutiliza el mismo valor durante toda la conversación.
     """
     if user_id not in CARTS:
         CARTS[user_id] = []

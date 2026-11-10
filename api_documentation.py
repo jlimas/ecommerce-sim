@@ -17,15 +17,18 @@ Los nombres, descripciones y mensajes comerciales están en español de México.
 ## Guía de integración para clientes y agentes
 
 1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar
-   por nombre, descripción, etiqueta o identificador. Usa los `id` devueltos; no inventes identificadores.
+   por nombre, descripción, etiqueta o identificador. Usa los `id` devueltos como `productId`;
+   no inventes identificadores de producto.
 2. **Elegir un producto:** compara `attributes.platform`, `attributes.brand`, `attributes.category`,
    `price`, `listPrice` y `discountPercent`. Confirma que la plataforma del videojuego o accesorio
    corresponde a la consola del cliente; no supongas compatibilidad entre plataformas distintas
    si la descripción del producto no la indica.
    Si hay varias opciones, conserva el producto y la plataforma solicitados por el cliente.
-3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como
-   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.
-   No uses correos, teléfonos u otros datos personales como identificadores.
+3. **Identificar el carrito:** tú generas el `user_id`; ninguna sesión ni ruta lo proporciona.
+   Al inicio de la conversación crea un texto opaco, como `cliente-7f3a9c`, y reutilízalo en todas
+   las operaciones de carrito y pago de ese cliente. Cualquier texto no vacío es válido: no hay registro,
+   login ni ruta para crear sesiones, y el carrito se crea solo en la primera llamada.
+   No uses correos, teléfonos u otros datos personales como `user_id`.
 4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.
    Consulta `getProduct` para obtener el nombre, la plataforma y el precio de cada referencia.
 5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`
@@ -161,9 +164,11 @@ TAGS = [
 UserId = Annotated[
     str,
     Path(
-        description="Clave opaca y estable del carrito del cliente. Usa la misma en todas las operaciones. "
-        "No es una credencial ni comprueba identidad; evita datos personales.",
-        examples=["cliente123"],
+        description="Clave del carrito que genera el cliente o agente: cualquier texto no vacío, "
+        "por ejemplo cliente-7f3a9c. No hay registro, login ni ruta de sesión; el carrito se crea solo "
+        "en la primera llamada. Genera una al inicio de la conversación y reutilízala en todas las "
+        "operaciones de carrito y pago. No es una credencial; no uses correos, teléfonos ni datos personales.",
+        examples=["cliente-7f3a9c", "cliente123"],
     ),
 ]
 ProductId = Annotated[

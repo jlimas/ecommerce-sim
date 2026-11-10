@@ -49,6 +49,7 @@ async def process_payment(
 ) -> dict:
     """
     Paga el carrito y recibe un ticket con todos los importes en pesos mexicanos (MXN).
+    Usa el mismo user_id que generaste para el carrito; no requiere sesión, login ni registro.
 
     ## Pasarela de pago y PIN de prueba
 
