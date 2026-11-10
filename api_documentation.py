@@ -181,6 +181,7 @@ No busca en marca, plataforma ni categoría como campos: usa sus filtros. Con `q
 el resultado empieza por las coincidencias de la frase completa.
 
 **Orden (`sort`).** {"; ".join(f"`{k}`: {v}" for k, v in SORT_OPTIONS.items())}
+También acepta `price_asc`, `price-desc`, `precio`, `menor precio`, `descuento` o `-price` (descendente).
 
 Codifica espacios y acentos en la URL con la biblioteca HTTP del cliente.
 Los filtros `presentation`, `size` y `color` y los campos `packageType`, `unitsPerPackage` y `stock`

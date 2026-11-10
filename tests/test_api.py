@@ -89,7 +89,7 @@ class StoreAPITests(unittest.TestCase):
             ({"platform": "Switch 3"}, "Nintendo Switch 2"),
             ({"category": "Ropa"}, "Videojuegos"),
             ({"tag": "familia,terror"}, "multijugador"),
-            ({"sort": "cheap"}, "priceAsc"),
+            ({"sort": "popularity"}, "priceAsc"),
         ]:
             with self.subTest(params=params):
                 response = self.client.get("/products", params=params)
@@ -178,6 +178,32 @@ class StoreAPITests(unittest.TestCase):
         discounts = [p["discountPercent"] for p in self.client.get("/products", params={"sort": "discountDesc"}).json()]
         self.assertEqual(discounts, sorted(discounts, reverse=True))
         self.assertEqual(self.client.get("/products", params={"limit": 0}).status_code, 422)
+
+    def test_sort_accepts_any_case_separator_and_synonyms(self) -> None:
+        cheapest = min(p["price"] for p in PRODUCTS)
+        priciest = max(p["price"] for p in PRODUCTS)
+        for value, expected in [
+            ("price_asc", cheapest),
+            ("PRICE-ASC", cheapest),
+            ("menor precio", cheapest),
+            ("price_desc", priciest),
+            ("-price", priciest),
+        ]:
+            with self.subTest(sort=value):
+                response = self.client.get("/products", params={"sort": value, "limit": 1})
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()[0]["price"], expected)
+
+    def test_optional_parameters_are_published_without_anyof(self) -> None:
+        schema = self.client.get("/openapi.json").json()
+        for path, operations in schema["paths"].items():
+            for operation in operations.values():
+                for parameter in operation.get("parameters", []):
+                    with self.subTest(path=path, parameter=parameter["name"]):
+                        self.assertNotIn("anyOf", parameter["schema"])
+                        self.assertIn("type", parameter["schema"])
+        sort = next(p for p in schema["paths"]["/products"]["get"]["parameters"] if p["name"] == "sort")
+        self.assertEqual(sort["schema"]["enum"], ["relevance", "priceAsc", "priceDesc", "discountDesc", "nameAsc"])
 
     def test_search(self) -> None:
         for query, product_id in [

@@ -186,12 +186,44 @@ SORT_KEYS: dict[str, Callable[[dict], object]] = {
 }
 
 
+def _compact(value: str) -> str:
+    return normalize(value).replace(" ", "")
+
+
+SORT_ALIASES = {
+    _compact(alias): option
+    for option, aliases in {
+        "relevance": ["relevance", "relevancia", "default", "recomendado"],
+        "priceAsc": [
+            "price asc",
+            "price",
+            "precio",
+            "precio asc",
+            "menor precio",
+            "mas barato",
+            "barato",
+            "cheap",
+            "cheapest",
+            "asc",
+        ],
+        "priceDesc": ["price desc", "precio desc", "mayor precio", "mas caro", "expensive", "desc"],
+        "discountDesc": ["discount desc", "discount", "descuento", "mayor descuento", "best discount"],
+        "nameAsc": ["name asc", "name", "nombre", "alfabetico", "az"],
+    }.items()
+    for alias in aliases
+}
+DESCENDING_SORTS = {"priceAsc": "priceDesc", "nameAsc": "nameAsc", "discountDesc": "discountDesc"}
+
+
 def resolve_sort(value: str | None) -> str:
+    """Acepta camelCase, snake_case, kebab-case y sinónimos: `price_asc`, `precio`, `-price`."""
     if value is None:
         return "relevance"
-    for option in SORT_OPTIONS:
-        if normalize(option) == normalize(value):
-            return option
+    option = SORT_ALIASES.get(_compact(value))
+    if option and value.strip().startswith("-"):
+        option = DESCENDING_SORTS.get(option, option)
+    if option:
+        return option
     raise HTTPException(
         status_code=400, detail=f"sort no reconocido: {value!r}. Valores válidos: {', '.join(SORT_OPTIONS)}."
     )

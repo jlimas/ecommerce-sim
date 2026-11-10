@@ -175,7 +175,8 @@ async def get_products(
         default=None,
         description="Orden del resultado. "
         + " ".join(f"`{key}`: {value}" for key, value in SORT_OPTIONS.items())
-        + " Un valor desconocido devuelve 400.",
+        + " También acepta snake_case, kebab-case y sinónimos: `price_asc`, `precio` o `-price` (descendente). "
+        "Un valor desconocido devuelve 400.",
         examples=["priceAsc"],
         json_schema_extra={"enum": list(SORT_OPTIONS)},
     ),
