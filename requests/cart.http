@@ -1,11 +1,11 @@
 @baseUrl = http://localhost:8000
-@productId = YG001
+@productId = 45467911
 @userId = cliente123
 
 ### Consultar el carrito
 GET {{baseUrl}}/cart/{{userId}} HTTP/1.1
 
-### Agregar una caja de jugo de naranja, 4 botellas de 350 ml ($125.00 MXN por caja)
+### Agregar una pieza de Star Fox para Nintendo Switch 2 ($1,199.20 MXN)
 POST {{baseUrl}}/cart/{{userId}} HTTP/1.1
 Content-Type: application/json
 

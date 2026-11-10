@@ -1,4 +1,4 @@
-# API de Tienda de la Esquina
+# API de Arkanoid
 
 - **URL base:** `http://localhost:8000`
 - **Moneda:** pesos mexicanos (`MXN`) en todos los precios e importes.
@@ -12,43 +12,45 @@ Las rutas y las claves JSON conservan sus nombres en inglés para facilitar las 
 
 ### `GET /products`
 
-Consulta el catálogo. Permite combinar filtros exactos por `brand`, `presentation` y `category`, sin distinguir mayúsculas ni acentos.
+Consulta el catálogo. Permite combinar filtros exactos por `brand`, `platform` y `category`, sin distinguir mayúsculas ni acentos.
 
-Ejemplos: `/products?category=Botanas`, `/products?brand=YaGoods`.
+Ejemplos: `/products?category=Videojuegos`, `/products?platform=Nintendo%20Switch%202`, `/products?brand=Xbox`.
 
 ```json
 [
   {
-    "id": "YG001",
-    "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-    "description": "Jugo de naranja sin azúcar añadida.",
-    "price": 125.0,
+    "id": "45467911",
+    "name": "Star Fox Nintendo Switch 2",
+    "description": "El regreso de Fox McCloud y su escuadrón a los combates de naves en Switch 2. Para quien creció con Star Fox 64 y su 'Do a barrel roll!'.",
+    "price": 1199.2,
+    "listPrice": 1499.0,
+    "discountPercent": 20,
     "currency": "MXN",
-    "imageUrl": "/images/products/YG001.webp",
-    "packageType": "caja",
-    "unitsPerPackage": 4,
+    "imageUrl": "/images/products/45467911.webp",
+    "stock": 25,
+    "tags": ["nave", "accion", "arcade", "nostalgia", "n64", "un-jugador"],
     "attributes": {
-      "brand": "YaGoods",
-      "presentation": "Caja con 4 botellas de vidrio de 350 ml",
-      "category": "Jugos y bebidas"
+      "brand": "Nintendo",
+      "platform": "Nintendo Switch 2",
+      "category": "Videojuegos"
     }
   }
 ]
 ```
 
-Los antiguos atributos y filtros `size` y `color` se sustituyen por `presentation` y `brand`.
+Las categorías son `Consolas`, `Videojuegos`, `Accesorios`, `Pantallas` y `Coleccionables`. `platform` usa el valor completo del catálogo: `Nintendo Switch` y `Nintendo Switch 2` son plataformas distintas. Los campos `packageType` y `unitsPerPackage` y el filtro `presentation` de la versión anterior ya no existen.
 
-`price` cubre una caja completa; `unitsPerPackage` indica las unidades dentro de la caja. El carrito cuenta cajas, no botellas ni bolsas sueltas. El catálogo usa los 39 SKU del CSV de origen, traducidos al español de México. Los precios numéricos del CSV se interpretan como MXN porque no se proporciona una moneda de origen.
+`price` es el precio vigente de una pieza, con el descuento ya aplicado, y es el importe que se cobra. `listPrice` y `discountPercent` son informativos; no vuelvas a aplicar el descuento. El carrito cuenta piezas. `stock` es una existencia de referencia: la API no la valida ni la descuenta. El catálogo usa los 60 SKU del CSV de origen, con precios en MXN.
 
-`imageUrl` es relativa al origen de la API. Por ejemplo, `http://localhost:8000/images/products/YG001.webp` devuelve una imagen WebP de 512 × 512 píxeles, no JSON. No requiere credenciales. Las imágenes del CSV se sirven localmente, son ilustrativas y admiten caché condicional con ETag/Last-Modified. Las rutas estáticas no son operaciones adicionales del esquema OpenAPI.
+`imageUrl` es relativa al origen de la API. Por ejemplo, `http://localhost:8000/images/products/45467911.webp` devuelve una imagen WebP de 512 × 512 píxeles, no JSON. No requiere credenciales. Las imágenes del CSV se sirven localmente, son ilustrativas y admiten caché condicional con ETag/Last-Modified. Las rutas estáticas no son operaciones adicionales del esquema OpenAPI.
 
-### `GET /products/search?q=limon`
+### `GET /products/search?q=pokemon`
 
-Busca coincidencias parciales en el identificador, nombre o descripción. `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `limon` encuentra `limón`. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
+Busca coincidencias parciales en el identificador, nombre, descripción o etiquetas (`tags`). `q` requiere al menos tres caracteres. La búsqueda no distingue mayúsculas ni acentos: `pokemon` encuentra `Pokémon`, y `multijugador` encuentra los productos con esa etiqueta. Devuelve una lista de productos con el mismo formato que `/products`; si no hay coincidencias, devuelve `[]`.
 
 ### `GET /products/{product_id}`
 
-Consulta un producto, por ejemplo `/products/YG001`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
+Consulta un producto, por ejemplo `/products/45467911`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
 
 ## Carrito
 
@@ -60,7 +62,7 @@ Consulta el carrito. Un cliente sin productos recibe `[]`.
 
 ```json
 [
-  {"productId": "YG001", "quantity": 2}
+  {"productId": "45467911", "quantity": 2}
 ]
 ```
 
@@ -69,7 +71,7 @@ Consulta el carrito. Un cliente sin productos recibe `[]`.
 Agrega un producto existente. Si ya está en el carrito, incrementa su cantidad. `quantity` debe ser un entero mayor que cero.
 
 ```json
-{"productId": "YG001", "quantity": 2}
+{"productId": "45467911", "quantity": 2}
 ```
 
 Devuelve el carrito actualizado. Si el producto no existe, devuelve **404**.
@@ -103,7 +105,7 @@ Procesa el carrito completo y genera un recibo en MXN. Al aprobarse el pago, vac
 }
 ```
 
-Respuesta **200**, para un carrito con dos cajas de `YG001` (ocho botellas en total):
+Respuesta **200**, para un carrito con dos piezas de `45467911`:
 
 ```json
 {
@@ -111,17 +113,17 @@ Respuesta **200**, para un carrito con dos cajas de `YG001` (ocho botellas en to
   "message": "Pago procesado correctamente.",
   "ticketId": "TICKET-a1b2c3d4-...",
   "paymentSummary": {
-    "totalAmount": 250.0,
+    "totalAmount": 2398.4,
     "currency": "MXN",
     "paymentMethod": {"card": "**** **** **** 4444"}
   },
   "purchasedItems": [
     {
-      "productId": "YG001",
-      "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-      "unitPrice": 125.0,
+      "productId": "45467911",
+      "name": "Star Fox Nintendo Switch 2",
+      "unitPrice": 1199.2,
       "quantity": 2,
-      "totalPrice": 250.0
+      "totalPrice": 2398.4
     }
   ]
 }

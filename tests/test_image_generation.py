@@ -12,24 +12,26 @@ from PIL import Image
 import generate_product_images
 from data import PRODUCTS
 
+PRODUCT_ID = PRODUCTS[0]["id"]
+
 
 class ImageGenerationTests(unittest.TestCase):
     def test_all_products_have_generation_details(self) -> None:
         for product in PRODUCTS:
             self.assertTrue(product["name"])
-            self.assertTrue(product["attributes"]["presentation"])
-            self.assertGreater(product["unitsPerPackage"], 0)
+            self.assertTrue(product["attributes"]["platform"])
+            self.assertTrue(product["attributes"]["category"])
 
     def test_existing_images_are_not_regenerated(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output_dir = Path(directory)
-            existing = output_dir / "YG001.webp"
+            existing = output_dir / f"{PRODUCT_ID}.webp"
             existing.write_bytes(b"existing-image")
             with (
                 patch.object(generate_product_images, "OUTPUT_DIR", output_dir),
                 patch.object(generate_product_images, "generate_image") as generate,
                 patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}),
-                patch("sys.argv", ["generate_product_images.py", "--product-id", "YG001"]),
+                patch("sys.argv", ["generate_product_images.py", "--product-id", PRODUCT_ID]),
             ):
                 generate_product_images.main()
             generate.assert_not_called()
@@ -41,7 +43,7 @@ class ImageGenerationTests(unittest.TestCase):
                 patch.object(generate_product_images, "OUTPUT_DIR", Path(directory)),
                 patch.object(generate_product_images, "generate_image") as generate,
                 patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}),
-                patch("sys.argv", ["generate_product_images.py", "--product-id", "YG001", "--overwrite"]),
+                patch("sys.argv", ["generate_product_images.py", "--product-id", PRODUCT_ID, "--overwrite"]),
             ):
                 generate_product_images.main()
             generate.assert_called_once_with(PRODUCTS[0], "gpt-image-1.5")
@@ -63,7 +65,7 @@ class ImageGenerationTests(unittest.TestCase):
             self.assertEqual(payload["model"], "gpt-image-1.5")
             self.assertEqual(payload["quality"], "low")
             self.assertIn(PRODUCTS[0]["name"], payload["prompt"])
-            with Image.open(Path(directory) / "YG001.webp") as image:
+            with Image.open(Path(directory) / f"{PRODUCT_ID}.webp") as image:
                 self.assertEqual(image.size, (512, 512))
                 self.assertEqual(image.format, "WEBP")
 

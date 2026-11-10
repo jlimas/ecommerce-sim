@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Tienda de la Esquina",
-    "description": "\n## Tienda de la Esquina\n\nCatálogo YaGoods con 39 productos: jugos, bebidas con gas, tés, leches de sabores,\nbotanas, galletas y barras de granola y proteína, vendidos por caja.\nLos nombres, descripciones y mensajes comerciales están en español de México.\n\n## Guía de integración para clientes y agentes\n\n1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar\n   por nombre, descripción o identificador. Usa los `id` devueltos; no inventes identificadores.\n2. **Elegir una presentación:** compara `attributes.brand`, `attributes.presentation`,\n   `price`, `currency` y `unitsPerPackage`. Una unidad del carrito es una caja completa;\n   no se venden botellas, latas o bolsas sueltas.\n   Si hay varias opciones, conserva la presentación solicitada por el cliente.\n3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como\n   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.\n   No uses correos, teléfonos u otros datos personales como identificadores.\n4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.\n   Consulta `getProduct` para obtener el nombre, la presentación y el precio de cada referencia.\n5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`\n   **reemplaza** la cantidad. Para quitar un artículo usa `removeFromCart` o una cantidad\n   menor o igual a cero en `updateCartItem`. Las respuestas contienen el carrito completo actualizado.\n6. **Revisar la compra:** muestra productos, presentaciones, cantidades y total en MXN.\n   Respeta las autorizaciones y confirmaciones de compra de la aplicación cliente.\n7. **Completar la compra:** consulta la documentación de `payCart` para los requisitos del pago.\n   Un HTTP 200 devuelve el recibo y vacía el carrito. Conserva el recibo en el cliente:\n   no hay una ruta para recuperarlo después.\n\n### Ejemplo de recorrido\n\n```http\nGET /products/search?q=naranja\nGET /cart/cliente123\nPOST /cart/cliente123\nContent-Type: application/json\n\n{\"productId\":\"YG001\",\"quantity\":2}\n```\n\nEl último paso agrega dos cajas de jugo de naranja, cada caja con cuatro botellas de vidrio de 350 ml.\nCada caja cuesta $125.00 MXN: el subtotal es **$250.00 MXN**, por ocho botellas en total.\nNo multipliques el precio por unitsPerPackage: el precio ya cubre toda la caja.\nSi ya había una caja, `POST` deja tres; usa `PUT /cart/cliente123/YG001`\ncon `{\"quantity\":2}` si deseas exactamente dos.\n\n## Contrato de datos y moneda\n\n- Solicitudes y respuestas: JSON; envía `Content-Type: application/json` cuando haya cuerpo.\n- Las rutas y claves JSON están en inglés y distinguen mayúsculas: `productId`, `creditCardNumber`,\n  `totalAmount`, `paymentSummary`, `purchasedItems`. Los valores comerciales están en español.\n- **Todos los importes son pesos mexicanos (MXN), nunca USD ni centavos.**\n  `price: 19.5` equivale a $19.50 MXN. No multipliques ni dividas por 100 al enviar o leer precios.\n- `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen\n  también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.\n- Total de una partida = precio unitario × cantidad; total de compra = suma de las partidas.\n  Aquí precio unitario significa **precio por caja**. `quantity` cuenta cajas y `unitsPerPackage`\n  cuenta botellas, latas, bolsas o paquetes dentro de una caja, no cajas adicionales.\n  Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.\n  El recibo devuelto por el servidor es la referencia final de la compra.\n- No hay conversión de moneda, descuentos, envío ni recargos calculados por estas rutas.\n  No se proporciona un desglose fiscal; no inventes impuestos o cargos adicionales.\n- El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.\n- Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.\n\n## Imágenes de productos\n\nCada producto incluye `imageUrl`, por ejemplo `/images/products/YG001.webp`.\nResuelve esa ruta con el **origen de esta API**, no con el origen de tu frontend ni con `/products`.\nSi la API está en `https://tienda.example`, la imagen completa es\n`https://tienda.example/images/products/YG001.webp`.\nPuedes usar esa URL en un elemento `<img>` o descargarla con GET: devuelve bytes\n`image/webp` de 512 × 512 píxeles, no JSON ni base64. No requiere autenticación ni una llamada de generación.\nUsa `name` como texto alternativo accesible. Las imágenes son ilustrativas;\nconsulta el nombre, la descripción y la presentación para confirmar qué producto compras.\nLas rutas de archivos estáticos no aparecen como operaciones independientes en este esquema.\nSi una imagen no carga, muestra un recurso visual alternativo; no cambies el producto ni su precio.\nLas respuestas incluyen ETag y Last-Modified para permitir solicitudes condicionales y caché del cliente.\n\n## Búsqueda y filtros\n\n`listProducts` permite combinar `brand`, `presentation` y `category` mediante **AND**.\nLos filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios\nadicionales ni diferencias de unidades. Usa la presentación completa del catálogo,\npor ejemplo `Caja con 4 botellas de vidrio de 350 ml`, no solamente `350 ml`.\nCodifica espacios y acentos en la URL con la biblioteca HTTP del cliente.\n\n`searchProducts` hace búsqueda parcial por `id`, `name` y `description`, sin distinguir\nmayúsculas ni acentos. Exige al menos tres caracteres; `limon` encuentra `limón`.\nNo busca por marca o categoría como campos independientes: usa los filtros para esos casos.\nLos filtros antiguos `size` y `color` no forman parte del contrato; usa `presentation` y `brand`.\n\n## Estado, identidad y alcance\n\nEl catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:\nun reinicio borra los carritos y varios procesos no comparten su contenido.\nPara conservar una sesión, utiliza la misma instancia del servicio.\n`user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios\nni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.\nNo existen rutas de inventario, reservas, entrega, historial de pedidos, cancelación ni reembolsos.\nNo afirmes que una compra fue completada hasta recibir el recibo de `payCart`.\n\n## Errores, reintentos y concurrencia\n\n- **400:** la operación no se pudo completar; lee `detail` y corrige la causa antes de reintentar.\n- **404:** el producto, carrito o artículo solicitado no existe; vuelve a consultar catálogo o carrito.\n- **422:** la solicitud no cumple el esquema; revisa `detail[].loc`, `msg` y `type`.\n  Los mensajes de validación del framework pueden estar en inglés.\n- Los errores 400/404 usan `{\"detail\":\"mensaje\"}`; no se devuelve un recibo de éxito en un error.\n- **No hay claves de idempotencia.** No reintentes ciegamente `addToCart`: sumarías unidades otra vez.\n  Ante una respuesta perdida, consulta `getCart` y reconcilia la cantidad deseada.\n- `updateCartItem` establece una cantidad absoluta. Repetir una eliminación puede devolver 404;\n  consulta el carrito para verificar que el artículo ya no está.\n- No reintentes automáticamente un pago con resultado desconocido. Un carrito vacío no prueba\n  que se completó un pago; no reconstruyas un recibo ni inventes un folio.\n- Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos\n  de concurrencia entre clientes.\n",
+    "title": "Arkanoid",
+    "description": "\n## Arkanoid\n\nTienda de videojuegos con 60 productos: consolas, videojuegos, accesorios, pantallas y coleccionables\npara Nintendo Switch 2, Nintendo Switch, PlayStation 5 y Xbox Series, entre otras plataformas.\nLos nombres, descripciones y mensajes comerciales están en español de México.\n\n## Guía de integración para clientes y agentes\n\n1. **Descubrir productos:** usa `listProducts` para explorar o `searchProducts` para buscar\n   por nombre, descripción, etiqueta o identificador. Usa los `id` devueltos; no inventes identificadores.\n2. **Elegir un producto:** compara `attributes.platform`, `attributes.brand`, `attributes.category`,\n   `price`, `listPrice` y `discountPercent`. Confirma que la plataforma del videojuego o accesorio\n   corresponde a la consola del cliente; no supongas compatibilidad entre plataformas distintas\n   si la descripción del producto no la indica.\n   Si hay varias opciones, conserva el producto y la plataforma solicitados por el cliente.\n3. **Identificar el carrito:** elige un `user_id` opaco y estable por cliente, como\n   `cliente123`, y reutilízalo en todas sus operaciones de carrito y pago.\n   No uses correos, teléfonos u otros datos personales como identificadores.\n4. **Consultar antes de modificar:** `getCart` devuelve referencias `productId` y cantidades.\n   Consulta `getProduct` para obtener el nombre, la plataforma y el precio de cada referencia.\n5. **Agregar o establecer cantidades:** `addToCart` **suma** unidades; `updateCartItem`\n   **reemplaza** la cantidad. Para quitar un artículo usa `removeFromCart` o una cantidad\n   menor o igual a cero en `updateCartItem`. Las respuestas contienen el carrito completo actualizado.\n6. **Revisar la compra:** muestra productos, plataformas, cantidades y total en MXN.\n   Respeta las autorizaciones y confirmaciones de compra de la aplicación cliente.\n7. **Completar la compra:** consulta la documentación de `payCart` para los requisitos del pago.\n   Un HTTP 200 devuelve el recibo y vacía el carrito. Conserva el recibo en el cliente:\n   no hay una ruta para recuperarlo después.\n\n### Ejemplo de recorrido\n\n```http\nGET /products/search?q=star%20fox\nGET /cart/cliente123\nPOST /cart/cliente123\nContent-Type: application/json\n\n{\"productId\":\"45467911\",\"quantity\":2}\n```\n\nEl último paso agrega dos piezas de Star Fox para Nintendo Switch 2.\nCada pieza cuesta $1,199.20 MXN (precio de lista $1,499.00 MXN, con 20% de descuento ya aplicado):\nel subtotal es **$2,398.40 MXN**. No vuelvas a restar el descuento: `price` ya lo incluye.\nSi ya había una pieza, `POST` deja tres; usa `PUT /cart/cliente123/45467911`\ncon `{\"quantity\":2}` si deseas exactamente dos.\n\n## Contrato de datos y moneda\n\n- Solicitudes y respuestas: JSON; envía `Content-Type: application/json` cuando haya cuerpo.\n- Las rutas y claves JSON están en inglés y distinguen mayúsculas: `productId`, `creditCardNumber`,\n  `totalAmount`, `paymentSummary`, `purchasedItems`. Los valores comerciales están en español.\n- **Todos los importes son pesos mexicanos (MXN), nunca USD ni centavos.**\n  `price: 1199.2` equivale a $1,199.20 MXN. No multipliques ni dividas por 100 al enviar o leer precios.\n- `Product.currency` y `paymentSummary.currency` valen siempre `MXN`. La moneda del resumen\n  también aplica a `unitPrice` y `totalPrice` en todas las partidas del recibo.\n- `price` es el **precio vigente por pieza** y el único importe que se cobra. `listPrice` es el precio\n  de lista y `discountPercent` el descuento ya aplicado en `price`; ambos son informativos.\n  Si `discountPercent` es 0, `price` y `listPrice` son iguales.\n- Total de una partida = `price` × cantidad; total de compra = suma de las partidas.\n  `quantity` cuenta piezas. Los paquetes (bundles) se venden como una sola pieza con todo su contenido.\n  Usa aritmética decimal para calcular importes y muestra dos decimales al cliente.\n  El recibo devuelto por el servidor es la referencia final de la compra.\n- No hay cupones, descuentos adicionales, conversión de moneda, envío ni recargos calculados por estas rutas.\n  No se proporciona un desglose fiscal; no inventes impuestos o cargos adicionales.\n- El carrito contiene cantidades enteras. No se admiten cantidades fraccionarias.\n- Los listados devuelven arreglos sin paginación ni objetos contenedores; `[]` es un resultado válido.\n\n## Imágenes de productos\n\nCada producto incluye `imageUrl`, por ejemplo `/images/products/45467911.webp`.\nResuelve esa ruta con el **origen de esta API**, no con el origen de tu frontend ni con `/products`.\nSi la API está en `https://tienda.example`, la imagen completa es\n`https://tienda.example/images/products/45467911.webp`.\nPuedes usar esa URL en un elemento `<img>` o descargarla con GET: devuelve bytes\n`image/webp` de 512 × 512 píxeles, no JSON ni base64. No requiere autenticación ni una llamada de generación.\nUsa `name` como texto alternativo accesible. Las imágenes son ilustrativas;\nconsulta el nombre, la descripción y la plataforma para confirmar qué producto compras.\nLas rutas de archivos estáticos no aparecen como operaciones independientes en este esquema.\nSi una imagen no carga, muestra un recurso visual alternativo; no cambies el producto ni su precio.\nLas respuestas incluyen ETag y Last-Modified para permitir solicitudes condicionales y caché del cliente.\n\n## Búsqueda y filtros\n\n`listProducts` permite combinar `brand`, `platform` y `category` mediante **AND**.\nLos filtros son coincidencias exactas que ignoran mayúsculas y acentos, pero no espacios\nadicionales ni nombres abreviados. Usa la plataforma completa del catálogo,\npor ejemplo `Nintendo Switch 2`, no solamente `Switch 2`; `Nintendo Switch` y `Nintendo Switch 2`\nson plataformas distintas. Las categorías son `Consolas`, `Videojuegos`, `Accesorios`,\n`Pantallas` y `Coleccionables`.\nCodifica espacios y acentos en la URL con la biblioteca HTTP del cliente.\n`brand` conserva la marca del catálogo: en varios videojuegos y accesorios es la marca de la consola\n(por ejemplo, `Nintendo`), no la del estudio o editor del juego.\n\n`searchProducts` hace búsqueda parcial por `id`, `name`, `description` y `tags`, sin distinguir\nmayúsculas ni acentos. Exige al menos tres caracteres; `pokemon` encuentra `Pokémon`.\nLas etiquetas describen género, público y uso, en minúsculas, sin acentos y con guiones:\n`multijugador`, `nostalgia`, `familia`, `mundo-abierto`, `un-jugador`, `preventa`.\nNo busca por marca, plataforma o categoría como campos independientes: usa los filtros para esos casos.\nLos filtros `presentation`, `size` y `color` y los campos `packageType` y `unitsPerPackage`\nde versiones anteriores ya no forman parte del contrato.\n\n## Estado, identidad y alcance\n\nEl catálogo tiene identificadores estables. Los carritos se guardan en memoria por proceso:\nun reinicio borra los carritos y varios procesos no comparten su contenido.\nPara conservar una sesión, utiliza la misma instancia del servicio.\n`user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios\nni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.\n`stock` es una existencia de referencia: la API no reserva, valida ni descuenta inventario al comprar.\nLos productos con la etiqueta `preventa` se venden igual que el resto; el catálogo no indica fechas de entrega.\nNo existen rutas de reservas, entrega, historial de pedidos, cancelación ni reembolsos.\nNo afirmes que una compra fue completada hasta recibir el recibo de `payCart`.\n\n## Errores, reintentos y concurrencia\n\n- **400:** la operación no se pudo completar; lee `detail` y corrige la causa antes de reintentar.\n- **404:** el producto, carrito o artículo solicitado no existe; vuelve a consultar catálogo o carrito.\n- **422:** la solicitud no cumple el esquema; revisa `detail[].loc`, `msg` y `type`.\n  Los mensajes de validación del framework pueden estar en inglés.\n- Los errores 400/404 usan `{\"detail\":\"mensaje\"}`; no se devuelve un recibo de éxito en un error.\n- **No hay claves de idempotencia.** No reintentes ciegamente `addToCart`: sumarías unidades otra vez.\n  Ante una respuesta perdida, consulta `getCart` y reconcilia la cantidad deseada.\n- `updateCartItem` establece una cantidad absoluta. Repetir una eliminación puede devolver 404;\n  consulta el carrito para verificar que el artículo ya no está.\n- No reintentes automáticamente un pago con resultado desconocido. Un carrito vacío no prueba\n  que se completó un pago; no reconstruyas un recibo ni inventes un folio.\n- Evita escrituras simultáneas sobre el mismo carrito: no hay control de versiones ni bloqueos\n  de concurrencia entre clientes.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -18,7 +18,7 @@
           "Productos"
         ],
         "summary": "Consultar productos",
-        "description": "Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.\n\nSin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND\ny comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:\n`/products?brand=YaGoods&category=Botanas`.\nUna lista vacía significa que no hay coincidencias, no un error de conexión.\nUsa el SKU `id` como `productId` al agregar al carrito; `price` es el precio de una caja completa.",
+        "description": "Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.\n\nSin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND\ny comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:\n`/products?platform=Nintendo Switch 2&category=Videojuegos`.\nUna lista vacía significa que no hay coincidencias, no un error de conexión.\nUsa el SKU `id` como `productId` al agregar al carrito; `price` es el precio vigente de una pieza.",
         "operationId": "listProducts",
         "parameters": [
           {
@@ -36,14 +36,16 @@
               ],
               "description": "Marca exacta del catálogo. No distingue mayúsculas ni acentos.",
               "examples": [
-                "YaGoods"
+                "Nintendo",
+                "PlayStation",
+                "Xbox"
               ],
               "title": "Brand"
             },
             "description": "Marca exacta del catálogo. No distingue mayúsculas ni acentos."
           },
           {
-            "name": "presentation",
+            "name": "platform",
             "in": "query",
             "required": false,
             "schema": {
@@ -55,13 +57,15 @@
                   "type": "null"
                 }
               ],
-              "description": "Presentación exacta; conserva las unidades y espacios del catálogo.",
+              "description": "Plataforma exacta, tal como aparece en attributes.platform; conserva sus espacios y números.",
               "examples": [
-                "Caja con 4 botellas de vidrio de 350 ml"
+                "Nintendo Switch 2",
+                "PlayStation 5",
+                "Xbox Series"
               ],
-              "title": "Presentation"
+              "title": "Platform"
             },
-            "description": "Presentación exacta; conserva las unidades y espacios del catálogo."
+            "description": "Plataforma exacta, tal como aparece en attributes.platform; conserva sus espacios y números."
           },
           {
             "name": "category",
@@ -78,9 +82,9 @@
               ],
               "description": "Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar.",
               "examples": [
-                "Jugos y bebidas",
-                "Botanas",
-                "Barras de granola y proteína"
+                "Consolas",
+                "Videojuegos",
+                "Accesorios"
               ],
               "title": "Category"
             },
@@ -103,18 +107,27 @@
                   "coincidencia": {
                     "value": [
                       {
-                        "id": "YG001",
-                        "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-                        "description": "Jugo de naranja sin azúcar añadida.",
-                        "price": 125.0,
+                        "id": "45467911",
+                        "name": "Star Fox Nintendo Switch 2",
+                        "description": "El regreso de Fox McCloud y su escuadrón a los combates de naves en Switch 2. Para quien creció con Star Fox 64 y su 'Do a barrel roll!'.",
+                        "price": 1199.2,
+                        "listPrice": 1499.0,
+                        "discountPercent": 20,
                         "currency": "MXN",
-                        "imageUrl": "/images/products/YG001.webp",
-                        "packageType": "caja",
-                        "unitsPerPackage": 4,
+                        "imageUrl": "/images/products/45467911.webp",
+                        "stock": 25,
+                        "tags": [
+                          "nave",
+                          "accion",
+                          "arcade",
+                          "nostalgia",
+                          "n64",
+                          "un-jugador"
+                        ],
                         "attributes": {
-                          "brand": "YaGoods",
-                          "presentation": "Caja con 4 botellas de vidrio de 350 ml",
-                          "category": "Jugos y bebidas"
+                          "brand": "Nintendo",
+                          "platform": "Nintendo Switch 2",
+                          "category": "Videojuegos"
                         }
                       }
                     ]
@@ -145,7 +158,7 @@
           "Productos"
         ],
         "summary": "Buscar productos",
-        "description": "Busca productos por identificador, nombre o descripción.\n\nLa búsqueda es parcial, sin distinguir mayúsculas ni acentos. `limon` encuentra `limón`.\nUna consulta como `YG0` encuentra varios SKU; para un identificador exacto usa `getProduct`.\nSi no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.\nPara buscar por marca o categoría usa los filtros de `listProducts`.",
+        "description": "Busca productos por identificador, nombre, descripción o etiqueta.\n\nLa búsqueda es parcial, sin distinguir mayúsculas ni acentos. `pokemon` encuentra `Pokémon`.\nLas etiquetas (`tags`) describen género, público y uso: `multijugador`, `nostalgia`, `mundo-abierto`.\nUna consulta como `4467` encuentra varios SKU; para un identificador exacto usa `getProduct`.\nSi no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.\nPara buscar por marca, plataforma o categoría usa los filtros de `listProducts`.",
         "operationId": "searchProducts",
         "parameters": [
           {
@@ -155,29 +168,33 @@
             "schema": {
               "type": "string",
               "minLength": 3,
-              "description": "Busca por identificador, nombre o descripción (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
+              "description": "Busca por identificador, nombre, descripción o etiqueta (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
               "title": "Q"
             },
-            "description": "Busca por identificador, nombre o descripción (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
+            "description": "Busca por identificador, nombre, descripción o etiqueta (mínimo 3 caracteres). No distingue mayúsculas ni acentos.",
             "examples": {
               "porNombre": {
-                "summary": "Buscar jugo de naranja",
-                "value": "naranja"
+                "summary": "Buscar Star Fox",
+                "value": "star fox"
               },
               "sinAcentos": {
-                "summary": "Buscar limón sin escribir el acento",
-                "value": "limon"
+                "summary": "Buscar Pokémon sin escribir el acento",
+                "value": "pokemon"
+              },
+              "porEtiqueta": {
+                "summary": "Buscar juegos para varios jugadores",
+                "value": "multijugador"
               },
               "porIdentificador": {
                 "summary": "Buscar por SKU",
-                "value": "YG001"
+                "value": "45467911"
               }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Coincidencias parciales por identificador, nombre o descripción.",
+            "description": "Coincidencias parciales por identificador, nombre, descripción o etiqueta.",
             "content": {
               "application/json": {
                 "schema": {
@@ -188,21 +205,30 @@
                   "title": "Response Searchproducts"
                 },
                 "examples": {
-                  "buscarJugo": {
+                  "buscarJuego": {
                     "value": [
                       {
-                        "id": "YG001",
-                        "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-                        "description": "Jugo de naranja sin azúcar añadida.",
-                        "price": 125.0,
+                        "id": "45467911",
+                        "name": "Star Fox Nintendo Switch 2",
+                        "description": "El regreso de Fox McCloud y su escuadrón a los combates de naves en Switch 2. Para quien creció con Star Fox 64 y su 'Do a barrel roll!'.",
+                        "price": 1199.2,
+                        "listPrice": 1499.0,
+                        "discountPercent": 20,
                         "currency": "MXN",
-                        "imageUrl": "/images/products/YG001.webp",
-                        "packageType": "caja",
-                        "unitsPerPackage": 4,
+                        "imageUrl": "/images/products/45467911.webp",
+                        "stock": 25,
+                        "tags": [
+                          "nave",
+                          "accion",
+                          "arcade",
+                          "nostalgia",
+                          "n64",
+                          "un-jugador"
+                        ],
                         "attributes": {
-                          "brand": "YaGoods",
-                          "presentation": "Caja con 4 botellas de vidrio de 350 ml",
-                          "category": "Jugos y bebidas"
+                          "brand": "Nintendo",
+                          "platform": "Nintendo Switch 2",
+                          "category": "Videojuegos"
                         }
                       }
                     ]
@@ -233,7 +259,7 @@
           "Productos"
         ],
         "summary": "Consultar un producto",
-        "description": "Consulta los detalles y el precio en MXN de un producto.\n\nUsa el id exacto devuelto por el catálogo. Esta operación permite resolver las referencias\nproductId del carrito para mostrar nombres, presentaciones y precios al cliente.\nSi recibes 404, vuelve a consultar el catálogo; no sustituyas productos sin revisar la elección del cliente.",
+        "description": "Consulta los detalles y el precio en MXN de un producto.\n\nUsa el id exacto devuelto por el catálogo. Esta operación permite resolver las referencias\nproductId del carrito para mostrar nombres, plataformas y precios al cliente.\nSi recibes 404, vuelve a consultar el catálogo; no sustituyas productos sin revisar la elección del cliente.",
         "operationId": "getProduct",
         "parameters": [
           {
@@ -244,7 +270,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "YG001"
+                "45467911"
               ],
               "title": "Product Id"
             },
@@ -253,7 +279,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Detalles de una presentación vendible.",
+            "description": "Detalles de un producto del catálogo.",
             "content": {
               "application/json": {
                 "schema": {
@@ -262,18 +288,27 @@
                 "examples": {
                   "producto": {
                     "value": {
-                      "id": "YG001",
-                      "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-                      "description": "Jugo de naranja sin azúcar añadida.",
-                      "price": 125.0,
+                      "id": "45467911",
+                      "name": "Star Fox Nintendo Switch 2",
+                      "description": "El regreso de Fox McCloud y su escuadrón a los combates de naves en Switch 2. Para quien creció con Star Fox 64 y su 'Do a barrel roll!'.",
+                      "price": 1199.2,
+                      "listPrice": 1499.0,
+                      "discountPercent": 20,
                       "currency": "MXN",
-                      "imageUrl": "/images/products/YG001.webp",
-                      "packageType": "caja",
-                      "unitsPerPackage": 4,
+                      "imageUrl": "/images/products/45467911.webp",
+                      "stock": 25,
+                      "tags": [
+                        "nave",
+                        "accion",
+                        "arcade",
+                        "nostalgia",
+                        "n64",
+                        "un-jugador"
+                      ],
                       "attributes": {
-                        "brand": "YaGoods",
-                        "presentation": "Caja con 4 botellas de vidrio de 350 ml",
-                        "category": "Jugos y bebidas"
+                        "brand": "Nintendo",
+                        "platform": "Nintendo Switch 2",
+                        "category": "Videojuegos"
                       }
                     }
                   }
@@ -317,7 +352,7 @@
           "Carrito"
         ],
         "summary": "Consultar carrito",
-        "description": "Consulta los productos y cantidades del carrito de un cliente.\n\nSi no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente\nproductId y quantity: consulta getProduct para conocer precios, nombres y presentaciones.\nUsa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.",
+        "description": "Consulta los productos y cantidades del carrito de un cliente.\n\nSi no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente\nproductId y quantity: consulta getProduct para conocer precios, nombres y plataformas.\nUsa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.",
         "operationId": "getCart",
         "parameters": [
           {
@@ -351,7 +386,7 @@
                   "conProductos": {
                     "value": [
                       {
-                        "productId": "YG001",
+                        "productId": "45467911",
                         "quantity": 2
                       }
                     ]
@@ -380,7 +415,7 @@
           "Carrito"
         ],
         "summary": "Agregar al carrito",
-        "description": "Agrega un producto al carrito. Si ya existe, incrementa su cantidad.\n\nquantity cuenta cajas completas y debe ser un entero mayor que cero.\nSi había una caja y envías dos, quedan tres. No multipliques quantity por unitsPerPackage.\nPara dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.\nNo es idempotente: repetir la misma solicitud vuelve a sumar unidades.\nSi pierdes la respuesta, consulta getCart antes de reintentar.",
+        "description": "Agrega un producto al carrito. Si ya existe, incrementa su cantidad.\n\nquantity cuenta piezas del producto y debe ser un entero mayor que cero.\nSi había una pieza y envías dos, quedan tres.\nPara dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.\nNo es idempotente: repetir la misma solicitud vuelve a sumar unidades.\nSi pierdes la respuesta, consulta getCart antes de reintentar.",
         "operationId": "addToCart",
         "parameters": [
           {
@@ -406,10 +441,10 @@
                 "$ref": "#/components/schemas/CartItem"
               },
               "examples": {
-                "dosCajas": {
-                  "summary": "Sumar dos cajas de jugo de naranja, cuatro botellas por caja",
+                "dosPiezas": {
+                  "summary": "Sumar dos piezas de Star Fox para Nintendo Switch 2",
                   "value": {
-                    "productId": "YG001",
+                    "productId": "45467911",
                     "quantity": 2
                   }
                 }
@@ -433,7 +468,7 @@
                   "actualizado": {
                     "value": [
                       {
-                        "productId": "YG001",
+                        "productId": "45467911",
                         "quantity": 2
                       }
                     ]
@@ -503,7 +538,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "YG001"
+                "45467911"
               ],
               "title": "Product Id"
             },
@@ -550,7 +585,7 @@
                   "cantidadDos": {
                     "value": [
                       {
-                        "productId": "YG001",
+                        "productId": "45467911",
                         "quantity": 2
                       }
                     ]
@@ -626,7 +661,7 @@
               "type": "string",
               "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
-                "YG001"
+                "45467911"
               ],
               "title": "Product Id"
             },
@@ -754,13 +789,13 @@
                   "$ref": "#/components/schemas/PaymentReceipt"
                 },
                 "examples": {
-                  "compraDeDosCajas": {
+                  "compraDeDosPiezas": {
                     "value": {
                       "status": "success",
                       "message": "Pago procesado correctamente.",
                       "ticketId": "TICKET-8a646941-64c1-4b0a-9e3b-2d9df971bb05",
                       "paymentSummary": {
-                        "totalAmount": 250.0,
+                        "totalAmount": 2398.4,
                         "currency": "MXN",
                         "paymentMethod": {
                           "card": "**** **** **** 4444"
@@ -768,11 +803,11 @@
                       },
                       "purchasedItems": [
                         {
-                          "productId": "YG001",
-                          "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-                          "unitPrice": 125.0,
+                          "productId": "45467911",
+                          "name": "Star Fox Nintendo Switch 2",
+                          "unitPrice": 1199.2,
                           "quantity": 2,
-                          "totalPrice": 250.0
+                          "totalPrice": 2398.4
                         }
                       ]
                     }
@@ -831,14 +866,14 @@
             "title": "Productid",
             "description": "SKU del producto",
             "examples": [
-              "YG001"
+              "45467911"
             ]
           },
           "quantity": {
             "type": "integer",
             "exclusiveMinimum": 0.0,
             "title": "Quantity",
-            "description": "Cantidad de cajas completas, no de botellas o bolsas sueltas. En POST se suma.",
+            "description": "Cantidad de piezas del producto. En POST se suma a la cantidad existente.",
             "examples": [
               2
             ]
@@ -850,7 +885,7 @@
           "quantity"
         ],
         "title": "CartItem",
-        "description": "Partida del carrito. Consulta el producto para obtener nombre, presentación y precio."
+        "description": "Partida del carrito. Consulta el producto para obtener nombre, plataforma y precio."
       },
       "CartItemUpdate": {
         "properties": {
@@ -985,7 +1020,7 @@
             "title": "Totalamount",
             "description": "Suma de todas las partidas en pesos mexicanos (MXN)",
             "examples": [
-              250.0
+              2398.4
             ]
           },
           "currency": {
@@ -1014,15 +1049,15 @@
             "title": "Id",
             "description": "SKU del catálogo e identificador único del producto",
             "examples": [
-              "YG001"
+              "45467911"
             ]
           },
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Nombre del producto en español de México",
+            "description": "Nombre del producto en español de México; suele incluir la plataforma",
             "examples": [
-              "Jugo de naranja, 4 botellas de vidrio de 350 ml"
+              "Star Fox Nintendo Switch 2"
             ]
           },
           "description": {
@@ -1030,16 +1065,35 @@
             "title": "Description",
             "description": "Descripción del producto",
             "examples": [
-              "Jugo de naranja sin azúcar añadida."
+              "El regreso de Fox McCloud y su escuadrón a los combates de naves en Switch 2."
             ]
           },
           "price": {
             "type": "number",
             "minimum": 0.0,
             "title": "Price",
-            "description": "Precio de toda la caja en pesos mexicanos (MXN), no centavos ni precio por botella",
+            "description": "Precio vigente de una pieza en pesos mexicanos (MXN), no centavos. Ya incluye el descuento: es el importe que se cobra en el carrito",
             "examples": [
-              125.0
+              1199.2
+            ]
+          },
+          "listPrice": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Listprice",
+            "description": "Precio de lista antes del descuento, en MXN. Es informativo: no se cobra ni se suma a price",
+            "examples": [
+              1499.0
+            ]
+          },
+          "discountPercent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Discountpercent",
+            "description": "Descuento ya aplicado en price respecto a listPrice, en porcentaje entero. 0 significa sin descuento. No lo vuelvas a aplicar",
+            "examples": [
+              20
             ]
           },
           "currency": {
@@ -1055,24 +1109,34 @@
             "title": "Imageurl",
             "description": "Ruta de la imagen ilustrativa del producto, relativa al origen de la API. Descárgala con GET sin credenciales. Devuelve image/webp de 512 × 512 píxeles, no JSON.",
             "examples": [
-              "/images/products/YG001.webp"
+              "/images/products/45467911.webp"
             ]
           },
-          "packageType": {
-            "type": "string",
-            "title": "Packagetype",
-            "description": "Tipo de empaque que se vende",
-            "examples": [
-              "caja"
-            ]
-          },
-          "unitsPerPackage": {
+          "stock": {
             "type": "integer",
-            "exclusiveMinimum": 0.0,
-            "title": "Unitsperpackage",
-            "description": "Unidades contenidas en una caja, no la cantidad de cajas del carrito",
+            "minimum": 0.0,
+            "title": "Stock",
+            "description": "Existencias de referencia del catálogo. Es informativo: la API no reserva, valida ni descuenta inventario",
             "examples": [
-              4
+              25
+            ]
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Etiquetas de género, público y uso, en minúsculas y sin acentos. searchProducts también busca en ellas",
+            "examples": [
+              [
+                "nave",
+                "accion",
+                "arcade",
+                "nostalgia",
+                "n64",
+                "un-jugador"
+              ]
             ]
           },
           "attributes": {
@@ -1085,30 +1149,34 @@
           "name",
           "description",
           "price",
+          "listPrice",
+          "discountPercent",
           "imageUrl",
-          "packageType",
-          "unitsPerPackage",
+          "stock",
+          "tags",
           "attributes"
         ],
         "title": "Product",
-        "description": "Caja vendible; price es el precio de toda la caja en pesos mexicanos, no centavos."
+        "description": "Artículo vendible por pieza; price es el precio vigente en pesos mexicanos, no centavos."
       },
       "ProductAttributes": {
         "properties": {
           "brand": {
             "type": "string",
             "title": "Brand",
-            "description": "Marca del producto",
+            "description": "Marca del producto según el catálogo",
             "examples": [
-              "YaGoods"
+              "Nintendo"
             ]
           },
-          "presentation": {
+          "platform": {
             "type": "string",
-            "title": "Presentation",
-            "description": "Contenido de la caja vendible",
+            "title": "Platform",
+            "description": "Plataforma o familia de consolas con la que es compatible el producto",
             "examples": [
-              "Caja con 4 botellas de vidrio de 350 ml"
+              "Nintendo Switch 2",
+              "PlayStation 5",
+              "Xbox Series"
             ]
           },
           "category": {
@@ -1116,18 +1184,18 @@
             "title": "Category",
             "description": "Categoría del producto",
             "examples": [
-              "Jugos y bebidas"
+              "Videojuegos"
             ]
           }
         },
         "type": "object",
         "required": [
           "brand",
-          "presentation",
+          "platform",
           "category"
         ],
         "title": "ProductAttributes",
-        "description": "Atributos para distinguir presentaciones y aplicar filtros exactos al catálogo."
+        "description": "Atributos para distinguir productos y aplicar filtros exactos al catálogo."
       },
       "PurchasedItem": {
         "properties": {
@@ -1144,12 +1212,12 @@
           "unitPrice": {
             "type": "number",
             "title": "Unitprice",
-            "description": "Precio de una caja completa en pesos mexicanos (MXN)"
+            "description": "Precio vigente de una pieza en pesos mexicanos (MXN), con descuento"
           },
           "quantity": {
             "type": "integer",
             "title": "Quantity",
-            "description": "Cantidad de cajas compradas, no de botellas, latas o bolsas individuales"
+            "description": "Cantidad de piezas compradas"
           },
           "totalPrice": {
             "type": "number",
@@ -1247,7 +1315,7 @@
   "tags": [
     {
       "name": "Productos",
-      "description": "Descubre productos y consulta precios en MXN. Operaciones de lectura sin modificar el carrito. Empieza aquí para obtener identificadores, marcas, presentaciones y categorías válidos."
+      "description": "Descubre productos y consulta precios en MXN. Operaciones de lectura sin modificar el carrito. Empieza aquí para obtener identificadores, marcas, plataformas y categorías válidos."
     },
     {
       "name": "Carrito",

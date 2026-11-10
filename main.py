@@ -8,7 +8,7 @@ from apis import cart, payments, products
 from models import RootResponse
 
 app = FastAPI(
-    title="Tienda de la Esquina",
+    title="Arkanoid",
     description=DESCRIPTION,
     version="1.0.0",
     openapi_tags=TAGS,
@@ -27,7 +27,8 @@ app.mount("/images", StaticFiles(directory=Path(__file__).resolve().parent / "st
 async def read_root() -> RootResponse:
     """Da la bienvenida y muestra la ubicación del esquema OpenAPI."""
     return RootResponse(
-        message="Bienvenido a Tienda de la Esquina. Consulta nuestro catálogo y compra en pesos mexicanos. "
+        message="Bienvenido a Arkanoid, tu tienda de videojuegos. "
+        "Consulta consolas, videojuegos y accesorios y compra en pesos mexicanos. "
         "El esquema OpenAPI está disponible en /openapi.json.",
         openapi_url="/openapi.json",
     )

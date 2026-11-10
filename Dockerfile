@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.15.2-slim AS runtime
 
 WORKDIR /app
-LABEL org.opencontainers.image.title="Tienda de la Esquina"
+LABEL org.opencontainers.image.title="Arkanoid"
 RUN groupadd --system --gid 1001 appgroup && \
     useradd --system --uid 1001 --gid appgroup appuser
 COPY --link --from=builder /opt/venv /opt/venv

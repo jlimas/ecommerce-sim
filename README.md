@@ -1,6 +1,6 @@
-# Tienda de la Esquina
+# Arkanoid
 
-API de una tienda con catálogo YaGoods, carrito y recibos de compra. Ofrece bebidas, botanas, galletas y barras de granola y proteína por caja. El catálogo, la documentación y los mensajes están en español de México. Todos los precios e importes están en **pesos mexicanos (MXN)**.
+API de Arkanoid, una tienda de videojuegos con catálogo, carrito y recibos de compra. Ofrece consolas, videojuegos, accesorios, pantallas y coleccionables para Nintendo Switch 2, Nintendo Switch, PlayStation 5 y Xbox Series, entre otras plataformas. El catálogo, la documentación y los mensajes están en español de México. Todos los precios e importes están en **pesos mexicanos (MXN)**.
 
 ## Desarrollo local
 
@@ -21,19 +21,19 @@ Consulta [API.md](API.md) y los ejemplos de `requests/*.http` para explorar prod
 
 ## Catálogo y moneda
 
-El catálogo contiene 39 productos importados de `catalog/products.csv`, con SKU originales (`YG001` a `YG039`) y traducciones mexicanas en `catalog/localization.json`. Por ejemplo, YG001 es una caja con cuatro botellas de jugo de naranja de 350 ml a $125.00 MXN. Los productos incluyen marca, presentación y categoría; se pueden filtrar por estos atributos y buscar sin distinguir mayúsculas ni acentos.
+El catálogo contiene 60 productos cargados de `catalog/products.csv`: 6 consolas, 29 videojuegos, 22 accesorios, 2 pantallas y 1 coleccionable, con sus SKU originales. Por ejemplo, `45467911` es Star Fox para Nintendo Switch 2 a $1,199.20 MXN (precio de lista $1,499.00 MXN, 20% de descuento). Los productos incluyen marca, plataforma y categoría; se pueden filtrar por estos atributos y buscar por nombre, descripción, etiqueta o SKU sin distinguir mayúsculas ni acentos.
 
-`price` es el precio de una caja completa y `quantity` cuenta cajas. `unitsPerPackage` indica cuántas botellas, latas, bolsas o paquetes contiene una caja; no multipliques el precio por ese número. Dos cajas de YG001 contienen ocho botellas y cuestan $250.00 MXN.
+`price` es el precio vigente de una pieza y el importe que se cobra; `listPrice` y `discountPercent` informan el precio de lista y el descuento ya aplicado. `quantity` cuenta piezas: dos piezas de `45467911` cuestan $2,398.40 MXN. `tags` describe género, público y uso (`multijugador`, `nostalgia`, `mundo-abierto`). `stock` es una existencia de referencia; el carrito y el pago no la validan ni la descuentan.
 
-El CSV no especifica moneda: se conservan sus precios numéricos como MXN, sin suponer un tipo de cambio. Los valores faltantes de marca y disponibilidad se completan con YaGoods y activo, respectivamente. Se prefieren los campos estructurados de tamaño y unidades cuando difieren del nombre original. Consulta [catalog/README.md](catalog/README.md) para el origen, las reglas de normalización y las discrepancias de YG002 y YG004.
+Todos los precios del CSV están en MXN; no se realiza conversión de divisas. Los nombres visibles de las categorías se definen en `catalog/localization.json`. Consulta [catalog/README.md](catalog/README.md) para el origen de los datos y las decisiones de normalización.
 
-Las rutas y los campos principales de JSON conservan sus nombres (`/products`, `productId`, `totalAmount`, etc.). Los atributos `size` y `color` se sustituyen por `presentation` y `brand`, también en los filtros. Los productos incluyen `currency: "MXN"`; en los recibos, `paymentSummary.currency` indica la moneda de todos los importes.
+Las rutas y los campos principales de JSON conservan sus nombres (`/products`, `productId`, `totalAmount`, etc.). Respecto a la versión anterior de la tienda, el atributo y filtro `presentation` se sustituye por `platform`; se eliminan `packageType` y `unitsPerPackage` y se agregan `listPrice`, `discountPercent`, `stock` y `tags`. Los productos incluyen `currency: "MXN"`; en los recibos, `paymentSummary.currency` indica la moneda de todos los importes.
 
 ## Imágenes
 
-Cada producto incluye `imageUrl`, una ruta como `/images/products/YG001.webp` relativa al origen de la API. Las 39 imágenes del CSV se descargan previamente y se sirven desde la misma aplicación como archivos WebP de 512 × 512 píxeles, sin autenticación, dependencias de almacenamiento externo en ejecución ni llamadas de IA durante las solicitudes. Se incluyen en la imagen Docker.
+Cada producto incluye `imageUrl`, una ruta como `/images/products/45467911.webp` relativa al origen de la API. Las 60 imágenes del CSV se descargan previamente y se sirven desde la misma aplicación como archivos WebP de 512 × 512 píxeles, sin autenticación, dependencias de almacenamiento externo en ejecución ni llamadas de IA durante las solicitudes. Se incluyen en la imagen Docker.
 
-Las imágenes activas provienen de los enlaces `imageURL` del CSV y se optimizan con Pillow. Son ilustrativas; los nombres, precios y presentaciones normalizados del catálogo son la referencia de compra. Para restaurar imágenes faltantes, ejecuta `uv run --locked python sync_catalog_images.py`; no requiere claves ni genera cargos de IA.
+Las imágenes activas provienen de los enlaces `imagen_url` del CSV y se optimizan con Pillow. Son ilustrativas; los nombres, precios y plataformas del catálogo son la referencia de compra. Para restaurar imágenes faltantes, ejecuta `uv run --locked python sync_catalog_images.py`; no requiere claves ni genera cargos de IA.
 
 La generación con OpenAI se conserva como opción futura y no se utiliza para las imágenes activas. Para generar imágenes nuevas, configura `OPENAI_API_KEY` en tu entorno y ejecuta:
 
@@ -41,7 +41,7 @@ La generación con OpenAI se conserva como opción futura y no se utiliza para l
 uv run --locked python generate_product_images.py
 ```
 
-El script conserva los archivos existentes. Puedes seleccionar un producto con `--product-id YG001` y regenerarlo explícitamente con `--overwrite`. La generación utiliza la API de OpenAI (`gpt-image-1.5` por defecto) y tiene un costo; no se ejecuta al instalar, iniciar, probar ni construir la aplicación. Las credenciales y Pillow no son necesarios en producción. Nunca guardes la clave en el repositorio.
+El script conserva los archivos existentes. Puedes seleccionar un producto con `--product-id 45467911` y regenerarlo explícitamente con `--overwrite`. La generación utiliza la API de OpenAI (`gpt-image-1.5` por defecto) y tiene un costo; no se ejecuta al instalar, iniciar, probar ni construir la aplicación. Las credenciales y Pillow no son necesarios en producción. Nunca guardes la clave en el repositorio.
 
 ## Pagos
 
@@ -55,7 +55,7 @@ La pasarela de pago es de prueba: **no realiza cargos reales**. Usa únicamente 
 - `static/products/`: imágenes WebP servidas en `/images/products/`.
 - `generate_product_images.py`: generación de imágenes opcional, solo en desarrollo.
 - `sync_catalog_images.py`: copia local y optimización de las imágenes del CSV.
-- `catalog/`: CSV de origen, traducciones y decisiones de normalización.
+- `catalog/`: CSV de origen, nombres de categorías y decisiones de normalización.
 - `data.py`: carga del catálogo local y carritos en memoria.
 - `models.py`: contratos Pydantic de solicitudes y respuestas.
 - `apis/`: operaciones de productos, carrito y pagos.

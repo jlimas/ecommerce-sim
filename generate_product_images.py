@@ -15,11 +15,11 @@ from data import PRODUCTS
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "static" / "products"
 STYLE = (
-    "Create a clean, photorealistic e-commerce product packshot for a Mexican convenience store. "
-    "Show the complete retail package and its stated number of bottles, bags or packs, "
+    "Create a clean, photorealistic e-commerce product packshot for a Mexican video game store. "
+    "Show the complete retail product: the console, game case, accessory or screen, "
     "centered and entirely visible, filling about 70 percent of a square canvas. "
     "Seamless warm-white background, soft studio lighting, subtle contact shadow, eye-level front three-quarter view. "
-    "Accurate physical proportions and appetizing materials. "
+    "Accurate physical proportions and realistic materials. "
     "No hands, people, props, price tags, borders or watermarks. "
     "Use recognizable packaging colors and the brand name, with simple legible package lettering, not dense tiny text. "
     "An illustrative product rendering, not an official manufacturer photograph. "
@@ -30,8 +30,8 @@ def generate_image(product: dict, model: str) -> None:
     """Solicita un packshot y guarda únicamente el WebP optimizado, nunca credenciales."""
     prompt = (
         f"{STYLE}\nProduct: {product['name']}. {product['description']}\n"
-        f"Brand: {product['attributes']['brand']}. Presentation: {product['attributes']['presentation']}. "
-        f"The retail package contains {product['unitsPerPackage']} units."
+        f"Brand: {product['attributes']['brand']}. Platform: {product['attributes']['platform']}. "
+        f"Category: {product['attributes']['category']}."
     )
     payload = {
         "model": model,

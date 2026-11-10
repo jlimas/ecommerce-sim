@@ -1,6 +1,5 @@
 import csv
 import json
-import re
 from pathlib import Path
 
 from models import Product, ProductAttributes
@@ -9,7 +8,7 @@ CATALOG_DIR = Path(__file__).resolve().parent / "catalog"
 
 
 def load_products() -> list[dict]:
-    """Carga el catálogo local con SKU, precio por caja y textos en español de México."""
+    """Carga el catálogo local de Arkanoid con SKU, precios en MXN y textos en español de México."""
     localization = json.loads((CATALOG_DIR / "localization.json").read_text(encoding="utf-8"))
     products = []
     seen = set()
@@ -24,26 +23,23 @@ def load_products() -> list[dict]:
                 raise ValueError(f"isActive no válido para {sku}: {active!r}")
             if active == "false":
                 continue
-            text = localization["products"][sku]
-            size = re.sub(r"(?<=\d)\s*(ml|g)\b", r" \1", row["size"].strip())
-            count = int(row["unitsPerPackage"] or 1)
-            presentation = f"Caja con {count} {text['container']} de {size}"
-            brand = (row.get("brand") or localization["defaultBrand"]).strip()
-            if brand.casefold() == localization["defaultBrand"].casefold():
-                brand = localization["defaultBrand"]
+            if row["moneda"].strip() != localization["currency"]:
+                raise ValueError(f"Moneda no admitida para {sku}: {row['moneda']!r}")
             product = Product(
                 id=sku,
-                name=f"{text['name']}, {count} {text['container']} de {size}",
-                description=text["description"],
-                price=float(row["price"]),
+                name=row["nombre"].strip(),
+                description=row["descripcion"].strip(),
+                price=float(row["precio_oferta_mxn"]),
+                list_price=float(row["precio_lista_mxn"]),
+                discount_percent=int(row["descuento_pct"]),
                 currency=localization["currency"],
                 image_url=f"/images/products/{sku}.webp",
-                package_type="caja",
-                units_per_package=count,
+                stock=int(row["stock"]),
+                tags=[tag.strip() for tag in row["tags"].split("|") if tag.strip()],
                 attributes=ProductAttributes(
-                    brand=brand,
-                    presentation=presentation,
-                    category=localization["categories"][row["category"]],
+                    brand=row["marca"].strip(),
+                    platform=row["plataforma"].strip(),
+                    category=localization["categories"][row["categoria"].strip()],
                 ),
             )
             products.append(product.model_dump(by_alias=True))
