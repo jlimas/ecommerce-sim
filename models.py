@@ -97,13 +97,6 @@ class Product(BaseModel):
         examples=["/images/products/45467911.webp"],
         json_schema_extra={"format": "uri-reference"},
     )
-    stock: int = Field(
-        ...,
-        ge=0,
-        description="Existencias de referencia del catálogo. "
-        "Es informativo: la API no reserva, valida ni descuenta inventario",
-        examples=[25],
-    )
     tags: List[str] = Field(
         ...,
         description="Etiquetas de género, público y uso, en minúsculas y sin acentos. "

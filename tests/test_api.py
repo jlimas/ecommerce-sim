@@ -42,7 +42,6 @@ class StoreAPITests(unittest.TestCase):
             self.assertEqual(product["currency"], "MXN")
             self.assertGreater(product["price"], 0)
             self.assertGreaterEqual(product["listPrice"], product["price"])
-            self.assertGreaterEqual(product["stock"], 0)
             self.assertTrue(product["tags"])
             self.assertEqual(set(product["attributes"]), {"brand", "platform", "category"})
             self.assertEqual(
@@ -56,7 +55,6 @@ class StoreAPITests(unittest.TestCase):
                     "discountPercent",
                     "currency",
                     "imageUrl",
-                    "stock",
                     "tags",
                     "attributes",
                 },

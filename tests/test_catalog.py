@@ -14,7 +14,7 @@ class CatalogTests(unittest.TestCase):
             self.rows = list(csv.DictReader(source))
         self.products = {product["id"]: product for product in data.PRODUCTS}
 
-    def test_source_skus_prices_and_stock_are_preserved(self) -> None:
+    def test_source_skus_and_prices_are_preserved(self) -> None:
         self.assertEqual(len(self.products), 60)
         self.assertEqual(set(self.products), {row["sku"] for row in self.rows})
         for row in self.rows:
@@ -25,7 +25,6 @@ class CatalogTests(unittest.TestCase):
                 self.assertEqual(product["price"], float(row["precio_oferta_mxn"]))
                 self.assertEqual(product["listPrice"], float(row["precio_lista_mxn"]))
                 self.assertEqual(product["discountPercent"], int(row["descuento_pct"]))
-                self.assertEqual(product["stock"], int(row["stock"]))
                 self.assertEqual(product["tags"], row["tags"].split("|"))
                 self.assertEqual(product["currency"], "MXN")
                 self.assertEqual(product["attributes"]["brand"], row["marca"])

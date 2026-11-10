@@ -1,6 +1,6 @@
 # Origen y normalización del catálogo
 
-`products.csv` es el catálogo de videojuegos de Arkanoid: 60 productos con SKU, nombre, marca, plataforma, categoría, precio de lista, precio de oferta, descuento, descripción, etiquetas y existencias. Los datos de producto, precios e imágenes de referencia se consultaron en elpalaciodehierro.com el 2026-11-10; las columnas `imagen_url` y `url_producto` conservan ese origen y no se exponen en la API.
+`products.csv` es el catálogo de videojuegos de Arkanoid: 60 productos con SKU, nombre, marca, plataforma, categoría, precio de lista, precio de oferta, descuento, descripción y etiquetas. Los datos de producto, precios e imágenes de referencia se consultaron en elpalaciodehierro.com el 2026-11-10; las columnas `imagen_url` y `url_producto` conservan ese origen y no se exponen en la API.
 
 `localization.json` define la moneda, el estado activo por defecto y el nombre visible de cada categoría. Los nombres y descripciones ya vienen en español de México y se usan sin cambios.
 
@@ -11,7 +11,7 @@
 - **Moneda:** todos los renglones indican `MXN`. Un valor distinto en `moneda` detiene la carga; no se realiza conversión de divisas.
 - **Precio:** `price` es `precio_oferta_mxn`, el importe que se cobra por pieza. `listPrice` es `precio_lista_mxn` y `discountPercent` es `descuento_pct`; ambos son informativos. Las pruebas verifican que el descuento corresponda a ambos precios.
 - **Cantidades:** `quantity` cuenta piezas. Los paquetes (bundles) son una sola pieza; no hay cajas ni unidades por empaque.
-- **Existencias:** `stock` se publica como dato de referencia (25 piezas por producto en el origen). El carrito y el pago no lo validan ni lo descuentan.
+- **Existencias:** se eliminó la columna `stock` (25 piezas por producto en el origen). La tienda no maneja inventario: todos los productos están disponibles en cualquier cantidad.
 - **Disponibilidad:** el CSV no incluye `isActive`; todos los productos se consideran activos. Si se agrega esa columna, `FALSE` excluye el producto.
 - **Marca:** se conserva `marca` tal como viene. En varios videojuegos y accesorios es la marca de la consola (por ejemplo, Cyberpunk 2077 aparece como Nintendo) o un valor genérico (`Licencias`), no el estudio o editor.
 - **Plataforma:** se conserva `plataforma` sin normalizar. `Nintendo Switch` y `Nintendo Switch 2` son valores distintos; también existen `Xbox Series`, `PlayStation 5`, `PC portátil`, `TV`, `Multiplataforma`, `Coleccionable` y `Nintendo`.

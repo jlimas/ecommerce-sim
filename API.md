@@ -27,7 +27,6 @@ Ejemplos: `/products?category=Videojuegos`, `/products?platform=Nintendo%20Switc
     "discountPercent": 20,
     "currency": "MXN",
     "imageUrl": "/images/products/45467911.webp",
-    "stock": 25,
     "tags": ["nave", "accion", "arcade", "nostalgia", "n64", "un-jugador"],
     "attributes": {
       "brand": "Nintendo",
@@ -40,7 +39,7 @@ Ejemplos: `/products?category=Videojuegos`, `/products?platform=Nintendo%20Switc
 
 Las categorías son `Consolas`, `Videojuegos`, `Accesorios`, `Pantallas` y `Coleccionables`. `platform` usa el valor completo del catálogo: `Nintendo Switch` y `Nintendo Switch 2` son plataformas distintas. Los campos `packageType` y `unitsPerPackage` y el filtro `presentation` de la versión anterior ya no existen.
 
-`price` es el precio vigente de una pieza, con el descuento ya aplicado, y es el importe que se cobra. `listPrice` y `discountPercent` son informativos; no vuelvas a aplicar el descuento. El carrito cuenta piezas. `stock` es una existencia de referencia: la API no la valida ni la descuenta. El catálogo usa los 60 SKU del CSV de origen, con precios en MXN.
+`price` es el precio vigente de una pieza, con el descuento ya aplicado, y es el importe que se cobra. `listPrice` y `discountPercent` son informativos; no vuelvas a aplicar el descuento. El carrito cuenta piezas. No hay límite de existencias: todos los productos están disponibles en cualquier cantidad. El catálogo usa los 60 SKU del CSV de origen, con precios en MXN.
 
 `imageUrl` es relativa al origen de la API. Por ejemplo, `http://localhost:8000/images/products/45467911.webp` devuelve una imagen WebP de 512 × 512 píxeles, no JSON. No requiere credenciales. Las imágenes del CSV se sirven localmente, son ilustrativas y admiten caché condicional con ETag/Last-Modified. Las rutas estáticas no son operaciones adicionales del esquema OpenAPI.
 

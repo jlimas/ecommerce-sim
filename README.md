@@ -23,11 +23,11 @@ Consulta [API.md](API.md) y los ejemplos de `requests/*.http` para explorar prod
 
 El catálogo contiene 60 productos cargados de `catalog/products.csv`: 6 consolas, 29 videojuegos, 22 accesorios, 2 pantallas y 1 coleccionable, con sus SKU originales. Por ejemplo, `45467911` es Star Fox para Nintendo Switch 2 a $1,199.20 MXN (precio de lista $1,499.00 MXN, 20% de descuento). Los productos incluyen marca, plataforma y categoría; se pueden filtrar por estos atributos y buscar por nombre, descripción, etiqueta o SKU sin distinguir mayúsculas ni acentos.
 
-`price` es el precio vigente de una pieza y el importe que se cobra; `listPrice` y `discountPercent` informan el precio de lista y el descuento ya aplicado. `quantity` cuenta piezas: dos piezas de `45467911` cuestan $2,398.40 MXN. `tags` describe género, público y uso (`multijugador`, `nostalgia`, `mundo-abierto`). `stock` es una existencia de referencia; el carrito y el pago no la validan ni la descuentan.
+`price` es el precio vigente de una pieza y el importe que se cobra; `listPrice` y `discountPercent` informan el precio de lista y el descuento ya aplicado. `quantity` cuenta piezas: dos piezas de `45467911` cuestan $2,398.40 MXN. `tags` describe género, público y uso (`multijugador`, `nostalgia`, `mundo-abierto`). No se maneja inventario: todos los productos están disponibles en cualquier cantidad.
 
 Todos los precios del CSV están en MXN; no se realiza conversión de divisas. Los nombres visibles de las categorías se definen en `catalog/localization.json`. Consulta [catalog/README.md](catalog/README.md) para el origen de los datos y las decisiones de normalización.
 
-Las rutas y los campos principales de JSON conservan sus nombres (`/products`, `productId`, `totalAmount`, etc.). Respecto a la versión anterior de la tienda, el atributo y filtro `presentation` se sustituye por `platform`; se eliminan `packageType` y `unitsPerPackage` y se agregan `listPrice`, `discountPercent`, `stock` y `tags`. Los productos incluyen `currency: "MXN"`; en los recibos, `paymentSummary.currency` indica la moneda de todos los importes.
+Las rutas y los campos principales de JSON conservan sus nombres (`/products`, `productId`, `totalAmount`, etc.). Respecto a la versión anterior de la tienda, el atributo y filtro `presentation` se sustituye por `platform`; se eliminan `packageType` y `unitsPerPackage` y se agregan `listPrice`, `discountPercent` y `tags`. Los productos incluyen `currency: "MXN"`; en los recibos, `paymentSummary.currency` indica la moneda de todos los importes.
 
 ## Imágenes
 

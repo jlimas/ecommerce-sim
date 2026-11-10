@@ -34,7 +34,6 @@ def load_products() -> list[dict]:
                 discount_percent=int(row["descuento_pct"]),
                 currency=localization["currency"],
                 image_url=f"/images/products/{sku}.webp",
-                stock=int(row["stock"]),
                 tags=[tag.strip() for tag in row["tags"].split("|") if tag.strip()],
                 attributes=ProductAttributes(
                     brand=row["marca"].strip(),

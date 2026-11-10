@@ -119,7 +119,8 @@ un reinicio borra los carritos y varios procesos no comparten su contenido.
 Para conservar una sesión, utiliza la misma instancia del servicio.
 `user_id` es una clave de carrito, **no una credencial**; esta API no autentica usuarios
 ni verifica la propiedad del carrito. No envíes tokens que el esquema no solicita.
-`stock` es una existencia de referencia: la API no reserva, valida ni descuenta inventario al comprar.
+No hay límite de existencias: todos los productos del catálogo están disponibles en cualquier cantidad.
+La API no maneja inventario; no digas que un producto está agotado o tiene piezas limitadas.
 Los productos con la etiqueta `preventa` se venden igual que el resto; el catálogo no indica fechas de entrega.
 No existen rutas de reservas, entrega, historial de pedidos, cancelación ni reembolsos.
 No afirmes que una compra fue completada hasta recibir el recibo de `payCart`.
