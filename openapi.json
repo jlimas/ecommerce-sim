@@ -466,13 +466,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
                 "45467911"
               ],
               "title": "Product Id"
             },
-            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+            "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida."
           }
         ],
         "responses": {
@@ -524,13 +524,18 @@
             }
           },
           "404": {
-            "description": "El identificador no corresponde a un producto del catálogo.",
+            "description": "El identificador no corresponde a un producto del catálogo. detail repite el id recibido; si no es un SKU de 8 dígitos, la ruta se construyó mal: usa GET /products/{id} con el id de listProducts.",
             "content": {
               "application/json": {
                 "examples": {
                   "productoInexistente": {
                     "value": {
-                      "detail": "Producto no encontrado"
+                      "detail": "Producto no encontrado: '99999999'. Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911."
+                    }
+                  },
+                  "rutaMalConstruida": {
+                    "value": {
+                      "detail": "Producto no encontrado: 'detail'. Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911."
                     }
                   }
                 },
@@ -687,13 +692,18 @@
             }
           },
           "404": {
-            "description": "El identificador no corresponde a un producto del catálogo.",
+            "description": "El identificador no corresponde a un producto del catálogo. detail repite el id recibido; si no es un SKU de 8 dígitos, la ruta se construyó mal: usa GET /products/{id} con el id de listProducts.",
             "content": {
               "application/json": {
                 "examples": {
                   "productoInexistente": {
                     "value": {
-                      "detail": "Producto no encontrado"
+                      "detail": "Producto no encontrado: '99999999'. Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911."
+                    }
+                  },
+                  "rutaMalConstruida": {
+                    "value": {
+                      "detail": "Producto no encontrado: 'detail'. Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911."
                     }
                   }
                 },
@@ -736,13 +746,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
                 "45467911"
               ],
               "title": "Product Id"
             },
-            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+            "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida."
           }
         ],
         "requestBody": {
@@ -860,13 +870,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida.",
+              "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida.",
               "examples": [
                 "45467911"
               ],
               "title": "Product Id"
             },
-            "description": "Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. En operaciones de carrito debe corresponder al productId de la partida."
+            "description": "SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. En operaciones de carrito debe corresponder al productId de la partida."
           }
         ],
         "responses": {
@@ -1113,9 +1123,9 @@
           "detail": {
             "type": "string",
             "title": "Detail",
-            "description": "Motivo del error en español",
+            "description": "Motivo del error en español; puede incluir el valor recibido y cómo corregir la solicitud",
             "examples": [
-              "Producto no encontrado"
+              "Carrito no encontrado para el cliente"
             ]
           }
         },

@@ -8,6 +8,7 @@ from api_documentation import (
     PRODUCT_NOT_FOUND,
     ProductId,
     UserId,
+    product_not_found,
     success_response,
 )
 from app_logging import log_event
@@ -79,7 +80,7 @@ async def add_to_cart(
     # Check if product exists
     product = next((p for p in PRODUCTS if p["id"] == item.product_id), None)
     if not product:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        raise product_not_found(item.product_id)
 
     existing_item = next((i for i in CARTS[user_id] if i["productId"] == item.product_id), None)
 

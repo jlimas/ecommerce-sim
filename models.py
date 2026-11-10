@@ -13,7 +13,11 @@ class RootResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Error de negocio: la operación solicitada no pudo completarse."""
 
-    detail: str = Field(..., description="Motivo del error en español", examples=["Producto no encontrado"])
+    detail: str = Field(
+        ...,
+        description="Motivo del error en español; puede incluir el valor recibido y cómo corregir la solicitud",
+        examples=["Carrito no encontrado para el cliente"],
+    )
 
 
 class ValidationIssue(BaseModel):

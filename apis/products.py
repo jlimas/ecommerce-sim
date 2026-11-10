@@ -2,7 +2,14 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from api_documentation import PRODUCT_EXAMPLE, PRODUCT_FILTER_ERRORS, PRODUCT_NOT_FOUND, ProductId, success_response
+from api_documentation import (
+    PRODUCT_EXAMPLE,
+    PRODUCT_FILTER_ERRORS,
+    PRODUCT_NOT_FOUND,
+    ProductId,
+    product_not_found,
+    success_response,
+)
 from app_logging import log_event
 from catalog_query import (
     BRAND_FILTER,
@@ -296,6 +303,6 @@ async def get_product(product_id: ProductId) -> dict:
     """
     product = next((p for p in PRODUCTS if p["id"] == product_id), None)
     if not product:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        raise product_not_found(product_id)
     log_event("getProduct", productId=product_id)
     return product

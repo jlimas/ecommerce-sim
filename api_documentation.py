@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any
 
-from fastapi import Path
+from fastapi import HTTPException, Path
 
 from catalog_query import BRANDS, CATEGORIES, PLATFORMS, SORT_OPTIONS
 from catalog_query import TAGS as CATALOG_TAGS
@@ -222,13 +222,25 @@ UserId = Annotated[
 ProductId = Annotated[
     str,
     Path(
-        description="Identificador exacto obtenido del catálogo (id). Distingue mayúsculas. "
+        description="SKU de 8 dígitos obtenido del campo id de listProducts o searchProducts, por ejemplo 45467911. "
+        "Va directamente en la ruta: GET /products/45467911. No existe una ruta /products/detail ni se envía "
+        "como parámetro de consulta (?id=); no sustituyas el id por palabras como detail, id o product_id. "
         "En operaciones de carrito debe corresponder al productId de la partida.",
         examples=["45467911"],
     ),
 ]
 
 EXAMPLE_PRODUCT_ID = "45467911"
+
+
+def product_not_found(product_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail=f"Producto no encontrado: {product_id!r}. Usa el SKU de 8 dígitos del campo id de listProducts "
+        f"o searchProducts en la ruta, por ejemplo /products/{EXAMPLE_PRODUCT_ID}.",
+    )
+
+
 PRODUCT_EXAMPLE = next(product for product in PRODUCTS if product["id"] == EXAMPLE_PRODUCT_ID)
 CART_EXAMPLE = [{"productId": EXAMPLE_PRODUCT_ID, "quantity": 2}]
 RECEIPT_EXAMPLE = {
@@ -282,7 +294,13 @@ VALIDATION_RESPONSE = {
 }
 
 PRODUCT_NOT_FOUND = error_response(
-    404, "El identificador no corresponde a un producto del catálogo.", productoInexistente="Producto no encontrado"
+    404,
+    "El identificador no corresponde a un producto del catálogo. detail repite el id recibido; si no es un SKU de "
+    "8 dígitos, la ruta se construyó mal: usa GET /products/{id} con el id de listProducts.",
+    productoInexistente="Producto no encontrado: '99999999'. "
+    "Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911.",
+    rutaMalConstruida="Producto no encontrado: 'detail'. "
+    "Usa el SKU de 8 dígitos del campo id de listProducts o searchProducts en la ruta, por ejemplo /products/45467911.",
 )
 CART_NOT_FOUND = error_response(
     404,

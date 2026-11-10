@@ -66,7 +66,7 @@ Atajo de solo texto, equivalente a `/products?q=...`. Busca coincidencias parcia
 
 ### `GET /products/{product_id}`
 
-Consulta un producto, por ejemplo `/products/45467911`. Devuelve el objeto del producto o un error **404** con `{"detail": "Producto no encontrado"}`.
+Consulta un producto, por ejemplo `/products/45467911`. Devuelve el objeto del producto o un error **404** cuyo `detail` empieza con `Producto no encontrado`, repite el id recibido y explica cómo construir la ruta. El id es el SKU de 8 dígitos y va en la ruta; no existe `/products/detail` ni `?id=`.
 
 ## Carrito
 

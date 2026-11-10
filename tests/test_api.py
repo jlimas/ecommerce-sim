@@ -231,7 +231,11 @@ class StoreAPITests(unittest.TestCase):
         self.assertIn(response.json(), self.client.get("/products").json())
         missing = self.client.get("/products/00000000")
         self.assertEqual(missing.status_code, 404)
-        self.assertEqual(missing.json()["detail"], "Producto no encontrado")
+        self.assertTrue(missing.json()["detail"].startswith("Producto no encontrado"))
+        malformed = self.client.get("/products/detail")
+        self.assertEqual(malformed.status_code, 404)
+        self.assertIn("'detail'", malformed.json()["detail"])
+        self.assertIn("/products/45467911", malformed.json()["detail"])
 
     def test_all_product_images_are_available(self) -> None:
         for product in self.client.get("/products").json():

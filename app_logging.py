@@ -41,6 +41,14 @@ def log_event(operation: str, level: int = logging.INFO, **fields: object) -> No
     logger.log(level, "%s %s", operation, json.dumps(fields, ensure_ascii=False, default=str))
 
 
+def _caller(request: Request) -> dict:
+    return {
+        "method": request.method,
+        "client": request.client.host if request.client else None,
+        "userAgent": request.headers.get("user-agent"),
+    }
+
+
 def _operation(request: Request) -> str:
     route = request.scope.get("route")
     return getattr(route, "operation_id", None) or getattr(route, "path", None) or request.url.path
@@ -55,6 +63,7 @@ async def log_http_exception(request: Request, exc: StarletteHTTPException) -> R
             detail=exc.detail,
             path=request.url.path,
             query=request.url.query,
+            **_caller(request),
         )
     return await http_exception_handler(request, exc)
 
@@ -66,6 +75,7 @@ async def log_validation_error(request: Request, exc: RequestValidationError) ->
         status=422,
         path=request.url.path,
         query=request.url.query,
+        **_caller(request),
         errors=[{"loc": e.get("loc"), "type": e.get("type"), "msg": e.get("msg")} for e in exc.errors()],
     )
     return await request_validation_exception_handler(request, exc)
