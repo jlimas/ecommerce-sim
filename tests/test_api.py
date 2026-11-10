@@ -21,54 +21,82 @@ class StoreAPITests(unittest.TestCase):
         self.payment_url = "/payments/cliente123"
         self.payment = {"creditCardNumber": "1111222233334444", "pin": "4444"}
 
-    def add_product(self, product_id: str = "YG001", quantity: int = 1) -> None:
+    def add_product(self, product_id: str = "45467911", quantity: int = 1) -> None:
         response = self.client.post(self.cart_url, json={"productId": product_id, "quantity": quantity})
         self.assertEqual(response.status_code, 200, response.text)
 
     def test_root(self) -> None:
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Tienda de la Esquina", response.json()["message"])
+        self.assertIn("Arkanoid", response.json()["message"])
         self.assertEqual(response.json()["openapiUrl"], "/openapi.json")
 
     def test_catalog(self) -> None:
         response = self.client.get("/products")
         self.assertEqual(response.status_code, 200)
         products = response.json()
-        self.assertEqual(len(products), 39)
-        self.assertEqual(len({p["id"] for p in products}), 39)
+        self.assertEqual(len(products), 60)
+        self.assertEqual(len({p["id"] for p in products}), 60)
         self.assertEqual(products, self.client.get("/products").json())
         for product in products:
             self.assertEqual(product["currency"], "MXN")
             self.assertGreater(product["price"], 0)
-            self.assertEqual(product["packageType"], "caja")
-            self.assertGreater(product["unitsPerPackage"], 0)
-            self.assertEqual(product["attributes"]["brand"], "YaGoods")
-            self.assertEqual(set(product["attributes"]), {"brand", "presentation", "category"})
-        self.assertEqual(products[0]["name"], "Jugo de naranja, 4 botellas de vidrio de 350 ml")
-        self.assertEqual(products[0]["price"], 125.0)
+            self.assertGreaterEqual(product["listPrice"], product["price"])
+            self.assertGreaterEqual(product["stock"], 0)
+            self.assertTrue(product["tags"])
+            self.assertEqual(set(product["attributes"]), {"brand", "platform", "category"})
+            self.assertEqual(
+                set(product),
+                {
+                    "id",
+                    "name",
+                    "description",
+                    "price",
+                    "listPrice",
+                    "discountPercent",
+                    "currency",
+                    "imageUrl",
+                    "stock",
+                    "tags",
+                    "attributes",
+                },
+            )
+        self.assertEqual(products[0]["name"], "Bundle Nintendo Switch 2 + Mario Kart World")
+        self.assertEqual(products[0]["price"], 13419.12)
+        self.assertEqual(products[0]["listPrice"], 15249.0)
+        self.assertEqual(products[0]["discountPercent"], 12)
 
     def test_combined_filters(self) -> None:
         response = self.client.get(
             "/products",
             params={
-                "brand": "yagoods",
-                "presentation": "Caja con 3 botellas de vidrio de 350 ML",
-                "category": "jugos y bebidas",
+                "brand": "nintendo",
+                "platform": "NINTENDO SWITCH 2",
+                "category": "consolas",
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([p["id"] for p in response.json()], ["YG002", "YG003"])
+        self.assertEqual([p["id"] for p in response.json()], ["44668140", "44668109"])
 
-    def test_category_filter_ignores_accents(self) -> None:
-        response = self.client.get("/products", params={"category": "barras de granola y proteina"})
-        self.assertEqual([p["id"] for p in response.json()], ["YG036", "YG037", "YG038", "YG039"])
+    def test_platform_filter_is_exact_and_ignores_accents(self) -> None:
+        response = self.client.get("/products", params={"platform": "pc portatil"})
+        self.assertEqual([p["id"] for p in response.json()], ["45353663"])
+        switch = self.client.get("/products", params={"platform": "Nintendo Switch"}).json()
+        self.assertEqual({p["attributes"]["platform"] for p in switch}, {"Nintendo Switch"})
+        self.assertEqual(len(switch), 13)
 
     def test_no_filter_matches(self) -> None:
         self.assertEqual(self.client.get("/products", params={"brand": "Inexistente"}).json(), [])
 
     def test_search(self) -> None:
-        for query, product_id in [("LIMON", "YG003"), ("limón", "YG003"), ("YG025", "YG025"), ("cardamomo", "YG034")]:
+        for query, product_id in [
+            ("POKEMON", "45276185"),
+            ("pokémon", "45276185"),
+            ("45021115", "45021115"),
+            ("barrel roll", "45467911"),
+            ("multijugador", "39548778"),
+            ("mundo-abierto", "44696109"),
+        ]:
             with self.subTest(query=query):
                 response = self.client.get("/products/search", params={"q": query})
                 self.assertEqual(response.status_code, 200)
@@ -80,10 +108,11 @@ class StoreAPITests(unittest.TestCase):
         self.assertEqual(self.client.get("/products/search", params={"q": "inexistente"}).json(), [])
 
     def test_product_detail(self) -> None:
-        response = self.client.get("/products/YG001")
+        response = self.client.get("/products/45467911")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), self.client.get("/products").json()[0])
-        missing = self.client.get("/products/YG999")
+        self.assertEqual(response.json()["name"], "Star Fox Nintendo Switch 2")
+        self.assertIn(response.json(), self.client.get("/products").json())
+        missing = self.client.get("/products/00000000")
         self.assertEqual(missing.status_code, 404)
         self.assertEqual(missing.json()["detail"], "Producto no encontrado")
 
@@ -101,14 +130,14 @@ class StoreAPITests(unittest.TestCase):
                     image.verify()
 
     def test_image_conditional_request(self) -> None:
-        response = self.client.get("/images/products/YG001.webp")
-        cached = self.client.get("/images/products/YG001.webp", headers={"If-None-Match": response.headers["etag"]})
+        response = self.client.get("/images/products/45467911.webp")
+        cached = self.client.get("/images/products/45467911.webp", headers={"If-None-Match": response.headers["etag"]})
         self.assertEqual(cached.status_code, 304)
         self.assertEqual(cached.content, b"")
 
     def test_images_do_not_expose_other_files(self) -> None:
         for path in (
-            "/images/products/YG999.webp",
+            "/images/products/00000000.webp",
             "/images/products/",
             "/images/products/%2e%2e/%2e%2e/models.py",
         ):
@@ -119,28 +148,30 @@ class StoreAPITests(unittest.TestCase):
         self.assertEqual(self.client.get(self.cart_url).json(), [])
         self.add_product(quantity=2)
         self.add_product()
-        self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "YG001", "quantity": 3}])
-        updated = self.client.put(f"{self.cart_url}/YG001", json={"quantity": 5})
-        self.assertEqual(updated.json(), [{"productId": "YG001", "quantity": 5}])
-        self.assertEqual(self.client.delete(f"{self.cart_url}/YG001").json(), [])
+        self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "45467911", "quantity": 3}])
+        updated = self.client.put(f"{self.cart_url}/45467911", json={"quantity": 5})
+        self.assertEqual(updated.json(), [{"productId": "45467911", "quantity": 5}])
+        self.assertEqual(self.client.delete(f"{self.cart_url}/45467911").json(), [])
 
     def test_cart_zero_or_negative_removes_product(self) -> None:
         for quantity in (0, -1):
             with self.subTest(quantity=quantity):
                 self.add_product()
-                response = self.client.put(f"{self.cart_url}/YG001", json={"quantity": quantity})
+                response = self.client.put(f"{self.cart_url}/45467911", json={"quantity": quantity})
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json(), [])
 
     def test_cart_errors(self) -> None:
-        self.assertEqual(self.client.post(self.cart_url, json={"productId": "YG999", "quantity": 1}).status_code, 404)
+        self.assertEqual(
+            self.client.post(self.cart_url, json={"productId": "00000000", "quantity": 1}).status_code, 404
+        )
         for quantity in (0, -1):
-            response = self.client.post(self.cart_url, json={"productId": "YG001", "quantity": quantity})
+            response = self.client.post(self.cart_url, json={"productId": "45467911", "quantity": quantity})
             self.assertEqual(response.status_code, 422)
         for method in (self.client.put, self.client.delete):
             kwargs = {"json": {"quantity": 1}} if method == self.client.put else {}
-            self.assertEqual(method("/cart/otro/YG001", **kwargs).status_code, 404)
-            self.assertEqual(method(f"{self.cart_url}/YG001", **kwargs).status_code, 404)
+            self.assertEqual(method("/cart/otro/45467911", **kwargs).status_code, 404)
+            self.assertEqual(method(f"{self.cart_url}/45467911", **kwargs).status_code, 404)
 
     def test_carts_are_separate(self) -> None:
         self.add_product()
@@ -148,7 +179,7 @@ class StoreAPITests(unittest.TestCase):
 
     def test_payment_receipt_in_mxn(self) -> None:
         self.add_product(quantity=2)
-        self.add_product("YG004", quantity=3)
+        self.add_product("45000236", quantity=3)
         response = self.client.post(self.payment_url, json=self.payment)
         self.assertEqual(response.status_code, 200, response.text)
         receipt = response.json()
@@ -156,26 +187,26 @@ class StoreAPITests(unittest.TestCase):
         self.assertEqual(receipt["message"], "Pago procesado correctamente.")
         self.assertTrue(receipt["ticketId"].startswith("TICKET-"))
         self.assertEqual(receipt["paymentSummary"]["currency"], "MXN")
-        self.assertEqual(receipt["paymentSummary"]["totalAmount"], 670.0)
+        self.assertEqual(receipt["paymentSummary"]["totalAmount"], 4285.7)
         self.assertEqual(receipt["paymentSummary"]["paymentMethod"]["card"], "**** **** **** 4444")
         self.assertNotIn(self.payment["creditCardNumber"], response.text)
         self.assertEqual(
             receipt["purchasedItems"][0],
             {
-                "productId": "YG001",
-                "name": "Jugo de naranja, 4 botellas de vidrio de 350 ml",
-                "unitPrice": 125.0,
+                "productId": "45467911",
+                "name": "Star Fox Nintendo Switch 2",
+                "unitPrice": 1199.2,
                 "quantity": 2,
-                "totalPrice": 250.0,
+                "totalPrice": 2398.4,
             },
         )
-        self.assertEqual(receipt["purchasedItems"][1]["totalPrice"], 420.0)
+        self.assertEqual(receipt["purchasedItems"][1]["totalPrice"], 1887.3)
         self.assertEqual(self.client.get(self.cart_url).json(), [])
         self.assertEqual(self.client.post(self.payment_url, json=self.payment).status_code, 400)
 
     def test_payment_centavo_arithmetic(self) -> None:
         with patch.dict(PRODUCTS[0], price=19.99):
-            self.add_product(quantity=3)
+            self.add_product(PRODUCTS[0]["id"], quantity=3)
             response = self.client.post(self.payment_url, json=self.payment)
             self.assertEqual(response.status_code, 200)
             receipt = response.json()
@@ -193,7 +224,7 @@ class StoreAPITests(unittest.TestCase):
                 response = self.client.post(self.payment_url, json=payment)
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.json()["detail"], detail)
-                self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "YG001", "quantity": 1}])
+                self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "45467911", "quantity": 1}])
 
     def test_empty_cart_payment(self) -> None:
         for initialize in (False, True):
@@ -218,10 +249,10 @@ class StoreAPITests(unittest.TestCase):
         response = self.client.get("/openapi.json")
         self.assertEqual(response.status_code, 200)
         schema = response.json()
-        self.assertEqual(schema["info"]["title"], "Tienda de la Esquina")
+        self.assertEqual(schema["info"]["title"], "Arkanoid")
         self.assertIn("MXN", schema["info"]["description"])
         filters = {p["name"] for p in schema["paths"]["/products"]["get"]["parameters"]}
-        self.assertEqual(filters, {"brand", "presentation", "category"})
+        self.assertEqual(filters, {"brand", "platform", "category"})
         payment_docs = schema["paths"]["/payments/{user_id}"]["post"]["description"]
         self.assertIn("mock", payment_docs)
         self.assertIn("no realiza cargos reales", payment_docs)
@@ -272,13 +303,13 @@ class StoreAPITests(unittest.TestCase):
                 if name == "pinIncorrecto":
                     self.assertEqual(response.status_code, 400)
                     self.assertEqual(response.json()["detail"], "PIN de prueba no válido")
-                    self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "YG001", "quantity": 2}])
+                    self.assertEqual(self.client.get(self.cart_url).json(), [{"productId": "45467911", "quantity": 2}])
                 else:
                     self.assertEqual(response.status_code, 200)
                     receipt_example = operation["responses"]["200"]["content"]["application/json"]["examples"]
-                    expected = receipt_example["compraDeDosCajas"]["value"]
+                    expected = receipt_example["compraDeDosPiezas"]["value"]
                     self.assertEqual(response.json()["purchasedItems"], expected["purchasedItems"])
-                    self.assertEqual(response.json()["paymentSummary"]["totalAmount"], 250.0)
+                    self.assertEqual(response.json()["paymentSummary"]["totalAmount"], 2398.4)
                     self.assertEqual(self.client.get(self.cart_url).json(), [])
 
 

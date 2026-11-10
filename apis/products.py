@@ -30,28 +30,28 @@ async def get_products(
     brand: Optional[str] = Query(
         default=None,
         description="Marca exacta del catálogo. No distingue mayúsculas ni acentos.",
-        examples=["YaGoods"],
+        examples=["Nintendo", "PlayStation", "Xbox"],
     ),
-    presentation: Optional[str] = Query(
+    platform: Optional[str] = Query(
         default=None,
-        description="Presentación exacta; conserva las unidades y espacios del catálogo.",
-        examples=["Caja con 4 botellas de vidrio de 350 ml"],
+        description="Plataforma exacta, tal como aparece en attributes.platform; conserva sus espacios y números.",
+        examples=["Nintendo Switch 2", "PlayStation 5", "Xbox Series"],
     ),
     category: Optional[str] = Query(
         default=None,
         description="Categoría exacta. Obtén los valores disponibles del catálogo sin filtrar.",
-        examples=["Jugos y bebidas", "Botanas", "Barras de granola y proteína"],
+        examples=["Consolas", "Videojuegos", "Accesorios"],
     ),
 ) -> list[dict]:
     """Consulta el catálogo con filtros opcionales. Todos los precios están en MXN.
 
     Sin filtros devuelve todos los productos, sin paginación. Los filtros se combinan con AND
     y comparan valores completos, ignorando mayúsculas y acentos. Por ejemplo:
-    `/products?brand=YaGoods&category=Botanas`.
+    `/products?platform=Nintendo Switch 2&category=Videojuegos`.
     Una lista vacía significa que no hay coincidencias, no un error de conexión.
-    Usa el SKU `id` como `productId` al agregar al carrito; `price` es el precio de una caja completa.
+    Usa el SKU `id` como `productId` al agregar al carrito; `price` es el precio vigente de una pieza.
     """
-    filters = {"brand": brand, "presentation": presentation, "category": category}
+    filters = {"brand": brand, "platform": platform, "category": category}
     return [
         product
         for product in PRODUCTS
@@ -69,8 +69,8 @@ async def get_products(
     summary="Buscar productos",
     operation_id="searchProducts",
     responses=success_response(
-        "Coincidencias parciales por identificador, nombre o descripción.",
-        buscarJugo=[PRODUCT_EXAMPLE],
+        "Coincidencias parciales por identificador, nombre, descripción o etiqueta.",
+        buscarJuego=[PRODUCT_EXAMPLE],
         sinCoincidencias=[],
     ),
 )
@@ -78,24 +78,30 @@ async def search_products(
     q: str = Query(
         ...,
         min_length=3,
-        description="Busca por identificador, nombre o descripción (mínimo 3 caracteres). "
+        description="Busca por identificador, nombre, descripción o etiqueta (mínimo 3 caracteres). "
         "No distingue mayúsculas ni acentos.",
         openapi_examples={
-            "porNombre": {"summary": "Buscar jugo de naranja", "value": "naranja"},
-            "sinAcentos": {"summary": "Buscar limón sin escribir el acento", "value": "limon"},
-            "porIdentificador": {"summary": "Buscar por SKU", "value": "YG001"},
+            "porNombre": {"summary": "Buscar Star Fox", "value": "star fox"},
+            "sinAcentos": {"summary": "Buscar Pokémon sin escribir el acento", "value": "pokemon"},
+            "porEtiqueta": {"summary": "Buscar juegos para varios jugadores", "value": "multijugador"},
+            "porIdentificador": {"summary": "Buscar por SKU", "value": "45467911"},
         },
     ),
 ) -> list[dict]:
-    """Busca productos por identificador, nombre o descripción.
+    """Busca productos por identificador, nombre, descripción o etiqueta.
 
-    La búsqueda es parcial, sin distinguir mayúsculas ni acentos. `limon` encuentra `limón`.
-    Una consulta como `YG0` encuentra varios SKU; para un identificador exacto usa `getProduct`.
+    La búsqueda es parcial, sin distinguir mayúsculas ni acentos. `pokemon` encuentra `Pokémon`.
+    Las etiquetas (`tags`) describen género, público y uso: `multijugador`, `nostalgia`, `mundo-abierto`.
+    Una consulta como `4467` encuentra varios SKU; para un identificador exacto usa `getProduct`.
     Si no hay coincidencias devuelve []; para consultas menores de tres caracteres devuelve 422.
-    Para buscar por marca o categoría usa los filtros de `listProducts`.
+    Para buscar por marca, plataforma o categoría usa los filtros de `listProducts`.
     """
     query = normalize_text(q)
-    return [p for p in PRODUCTS if any(query in normalize_text(p[key]) for key in ("id", "name", "description"))]
+    return [
+        p
+        for p in PRODUCTS
+        if any(query in normalize_text(text) for text in (p["id"], p["name"], p["description"], *p["tags"]))
+    ]
 
 
 @router.get(
@@ -104,7 +110,7 @@ async def search_products(
     summary="Consultar un producto",
     operation_id="getProduct",
     responses={
-        **success_response("Detalles de una presentación vendible.", producto=PRODUCT_EXAMPLE),
+        **success_response("Detalles de un producto del catálogo.", producto=PRODUCT_EXAMPLE),
         **PRODUCT_NOT_FOUND,
     },
 )
@@ -112,7 +118,7 @@ async def get_product(product_id: ProductId) -> dict:
     """Consulta los detalles y el precio en MXN de un producto.
 
     Usa el id exacto devuelto por el catálogo. Esta operación permite resolver las referencias
-    productId del carrito para mostrar nombres, presentaciones y precios al cliente.
+    productId del carrito para mostrar nombres, plataformas y precios al cliente.
     Si recibes 404, vuelve a consultar el catálogo; no sustituyas productos sin revisar la elección del cliente.
     """
     product = next((p for p in PRODUCTS if p["id"] == product_id), None)

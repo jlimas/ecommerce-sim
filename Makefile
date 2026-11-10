@@ -1,14 +1,14 @@
-# Makefile for managing Tienda de la Esquina
+# Makefile for managing Arkanoid
 
 # Variables
 VENV_DIR = .venv
-IMAGE_NAME = tienda-de-la-esquina
-CONTAINER_NAME = tienda-de-la-esquina-app
+IMAGE_NAME = arkanoid
+CONTAINER_NAME = arkanoid-app
 
 .PHONY: help install run format lint test requirements openapi docker-build docker-run docker-stop clean pre-commit
 
 help:
-	@echo "Makefile for managing Tienda de la Esquina"
+	@echo "Makefile for managing Arkanoid"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make help           Show this help message"

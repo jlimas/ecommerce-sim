@@ -28,7 +28,7 @@ async def get_cart(user_id: UserId) -> list[dict]:
     Consulta los productos y cantidades del carrito de un cliente.
 
     Si no existe, inicializa un carrito vacío y devuelve []. Cada partida contiene solamente
-    productId y quantity: consulta getProduct para conocer precios, nombres y presentaciones.
+    productId y quantity: consulta getProduct para conocer precios, nombres y plataformas.
     Usa esta operación antes de modificar cantidades y para reconciliar respuestas perdidas de addToCart.
     """
     if user_id not in CARTS:
@@ -51,9 +51,9 @@ async def add_to_cart(
     item: CartItem = Body(
         ...,
         openapi_examples={
-            "dosCajas": {
-                "summary": "Sumar dos cajas de jugo de naranja, cuatro botellas por caja",
-                "value": {"productId": "YG001", "quantity": 2},
+            "dosPiezas": {
+                "summary": "Sumar dos piezas de Star Fox para Nintendo Switch 2",
+                "value": {"productId": "45467911", "quantity": 2},
             }
         },
     ),
@@ -61,8 +61,8 @@ async def add_to_cart(
     """
     Agrega un producto al carrito. Si ya existe, incrementa su cantidad.
 
-    quantity cuenta cajas completas y debe ser un entero mayor que cero.
-    Si había una caja y envías dos, quedan tres. No multipliques quantity por unitsPerPackage.
+    quantity cuenta piezas del producto y debe ser un entero mayor que cero.
+    Si había una pieza y envías dos, quedan tres.
     Para dejar exactamente dos usa updateCartItem. El producto debe existir en el catálogo.
     No es idempotente: repetir la misma solicitud vuelve a sumar unidades.
     Si pierdes la respuesta, consulta getCart antes de reintentar.

@@ -16,7 +16,7 @@ router = APIRouter()
     summary="Pagar carrito",
     operation_id="payCart",
     responses={
-        **success_response("Pago aprobado: recibo completo en MXN y carrito vacío.", compraDeDosCajas=RECEIPT_EXAMPLE),
+        **success_response("Pago aprobado: recibo completo en MXN y carrito vacío.", compraDeDosPiezas=RECEIPT_EXAMPLE),
         **error_response(
             400,
             "Pago no aprobado. No se vacía el carrito. Corrige detail antes de reintentar; "

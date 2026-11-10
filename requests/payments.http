@@ -1,12 +1,12 @@
 @baseUrl = http://localhost:8000
 @userId = cliente123
 
-### Preparar el carrito: dos cajas de jugo de naranja a $125.00 MXN por caja (total $250.00 MXN)
+### Preparar el carrito: dos piezas de Star Fox a $1,199.20 MXN cada una (total $2,398.40 MXN)
 POST {{baseUrl}}/cart/{{userId}} HTTP/1.1
 Content-Type: application/json
 
 {
-  "productId": "YG001",
+  "productId": "45467911",
   "quantity": 2
 }
 

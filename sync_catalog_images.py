@@ -10,6 +10,8 @@ from PIL import Image, ImageOps
 from data import CATALOG_DIR, PRODUCTS
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "static" / "products"
+SOURCE_PREFIX = "https://www.elpalaciodehierro.com/on/demandware.static/-/Sites-palacio-master-catalog/"
+USER_AGENT = "arkanoid-catalog-sync/1.0"
 
 
 def main() -> None:
@@ -24,10 +26,11 @@ def main() -> None:
             output = OUTPUT_DIR / f"{sku}.webp"
             if output.exists():
                 continue
-            url = row["imageURL"]
-            if not url.startswith("https://storage.googleapis.com/yalo-img/"):
+            url = row["imagen_url"].strip()
+            if not url.startswith(SOURCE_PREFIX):
                 raise ValueError(f"Origen de imagen no permitido para {sku}")
-            with urllib.request.urlopen(url, timeout=60) as response:
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(request, timeout=60) as response:
                 content = response.read(10_000_001)
             if len(content) > 10_000_000:
                 raise ValueError(f"Imagen demasiado grande para {sku}")

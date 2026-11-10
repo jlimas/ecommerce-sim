@@ -1,4 +1,4 @@
-# Agent Guidelines for Tienda de la Esquina
+# Agent Guidelines for Arkanoid
 
 ## Build, Test & Lint Commands
 
@@ -45,8 +45,10 @@
 
 ### Data & State
 - In-memory data stored in `data.py` (PRODUCTS list, CARTS dictionary)
-- Product source: `catalog/products.csv`; Mexican Spanish display text and defaults: `catalog/localization.json`
-- Preserve source SKUs and numeric MXN prices. `price` is per box; `quantity` counts boxes; `unitsPerPackage` counts contents
+- Arkanoid is a video game store: consoles, games, accessories, screens and collectibles
+- Product source: `catalog/products.csv` (already in Mexican Spanish); category display names and defaults: `catalog/localization.json`
+- Preserve source SKUs and numeric MXN prices. `price` is the current (offer) price per piece; `listPrice` and `discountPercent` are informational; `quantity` counts pieces
+- `stock` is informational: carts and payments do not validate or decrement it
 - See `catalog/README.md` for source inconsistencies and normalization decisions
 - Product images are local WebP files in `static/products/`, served through each product's `imageUrl`
 - `sync_catalog_images.py` downloads source images; `generate_product_images.py` is optional future AI generation

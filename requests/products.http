@@ -1,17 +1,20 @@
 @baseUrl = http://localhost:8000
-@productId = YG001
+@productId = 45467911
 
 ### Consultar todos los productos (precios en MXN)
 GET {{baseUrl}}/products HTTP/1.1
 
-### Filtrar por marca y presentación
-GET {{baseUrl}}/products?brand=YaGoods&presentation=Caja%20con%204%20botellas%20de%20vidrio%20de%20350%20ml HTTP/1.1
+### Filtrar por marca y plataforma
+GET {{baseUrl}}/products?brand=Nintendo&platform=Nintendo%20Switch%202 HTTP/1.1
 
 ### Filtrar por categoría
-GET {{baseUrl}}/products?category=Botanas HTTP/1.1
+GET {{baseUrl}}/products?category=Videojuegos HTTP/1.1
 
 ### Buscar productos sin distinguir acentos
-GET {{baseUrl}}/products/search?q=limon HTTP/1.1
+GET {{baseUrl}}/products/search?q=pokemon HTTP/1.1
+
+### Buscar por etiqueta
+GET {{baseUrl}}/products/search?q=multijugador HTTP/1.1
 
 ### Consultar un producto
 GET {{baseUrl}}/products/{{productId}} HTTP/1.1
