@@ -22,6 +22,17 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
+            <li>
+              {/* Plain anchor: the schema is a backend route, so the SPA router must not handle it. */}
+              <a
+                href={STORE.openApiUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                API
+              </a>
+            </li>
           </ul>
         </nav>
         <div className="space-y-2 text-sm text-muted-foreground">
