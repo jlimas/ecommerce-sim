@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app_logging import NotFoundAccessFilter
 from data import CARTS
-from main import app
+from main import api as app
 
 
 def access_record(status: int) -> logging.LogRecord:

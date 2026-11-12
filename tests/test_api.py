@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from data import CARTS, PRODUCTS
-from main import app
+from main import api as app
 
 
 class StoreAPITests(unittest.TestCase):

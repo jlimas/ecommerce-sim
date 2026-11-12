@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource/silkscreen/400.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
+    --color-glitch: var(--glitch);
+    --color-glitch-foreground: var(--glitch-foreground);
+    --color-navy: var(--navy);
+    --color-royal: var(--royal);
+    --color-lavender: var(--lavender);
+    --font-pixel: 'Silkscreen', ui-monospace, monospace;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    color-scheme: dark;
+    --background: oklch(0.13 0.03 275);
+    --foreground: oklch(0.96 0.015 275);
+    --card: oklch(0.17 0.045 275);
+    --card-foreground: oklch(0.96 0.015 275);
+    --popover: oklch(0.17 0.045 275);
+    --popover-foreground: oklch(0.96 0.015 275);
+    --primary: oklch(0.86 0.15 200);
+    --primary-foreground: oklch(0.15 0.04 275);
+    --secondary: oklch(0.23 0.07 275);
+    --secondary-foreground: oklch(0.96 0.015 275);
+    --muted: oklch(0.21 0.05 275);
+    --muted-foreground: oklch(0.72 0.05 275);
+    --accent: oklch(0.25 0.08 275);
+    --accent-foreground: oklch(0.96 0.015 275);
+    --destructive: oklch(0.66 0.22 20);
+    --border: oklch(0.32 0.08 275 / 70%);
+    --input: oklch(0.32 0.08 275);
+    --ring: oklch(0.86 0.15 200);
+    --chart-1: oklch(0.86 0.15 200);
+    --chart-2: oklch(0.68 0.28 330);
+    --chart-3: oklch(0.55 0.22 268);
+    --chart-4: oklch(0.62 0.2 255);
+    --chart-5: oklch(0.75 0.12 280);
+    --radius: 0.75rem;
+    /* Avatar palette: neon cyan (primary accent), hot magenta (glitch accent), navy hoodie, royal blue cap. */
+    --brand: oklch(0.86 0.15 200);
+    --brand-foreground: oklch(0.15 0.04 275);
+    --glitch: oklch(0.68 0.28 330);
+    --glitch-foreground: oklch(0.98 0 0);
+    --navy: oklch(0.3 0.14 272);
+    --royal: oklch(0.58 0.2 258);
+    --lavender: oklch(0.7 0.13 285);
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  ::selection {
+    @apply bg-brand text-brand-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Glitch: RGB-split jitter in the avatar's cyan and magenta. Apply on hover or briefly on load. */
+@keyframes glitch-shift {
+  0%, 100% { text-shadow: 0 0 transparent; transform: none; }
+  20% { text-shadow: -2px 0 var(--glitch), 2px 0 var(--brand); transform: translateX(1px); }
+  40% { text-shadow: 2px 0 var(--glitch), -2px 0 var(--brand); transform: translateX(-1px); }
+  60% { text-shadow: -1px 0 var(--glitch), 1px 0 var(--brand); transform: skewX(-6deg); }
+  80% { text-shadow: 1px 0 var(--glitch), -1px 0 var(--brand); transform: none; }
+}
+@utility glitch-hover {
+  &:hover { animation: glitch-shift 0.45s steps(2, end) 1; }
+}
+@utility glitch-once {
+  animation: glitch-shift 0.6s steps(2, end) 0.4s 1;
+}
+@utility neon-glow {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--brand) 50%, transparent), 0 0 24px -4px color-mix(in oklch, var(--brand) 55%, transparent);
+}
+@utility pixel-grid {
+  background-image: linear-gradient(color-mix(in oklch, var(--brand) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--brand) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

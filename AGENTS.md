@@ -3,7 +3,8 @@
 ## Build, Test & Lint Commands
 
 - **Install dependencies:** `make install` (uses `uv sync --locked` and Python 3.15.2)
-- **Run development server:** `make run` (hot-reloading on port 8000)
+- **Run development server:** `make run` (hot-reloading on port 8000; API under `/api`, storefront at `/` when `frontend/dist` exists)
+- **Frontend:** `cd frontend && pnpm install && pnpm dev` (port 5173, proxies `/api` to port 8000); `pnpm build` produces `frontend/dist`
 - **Format code:** `make format` (runs `ruff format` + `ruff check --fix`)
 - **Lint code:** `make lint` (runs `ruff check`)
 - **Run pre-commit hooks:** `make pre-commit` (runs all hooks against every file)
@@ -24,7 +25,8 @@
 
 ### Imports & Structure
 - Organize imports: standard library → third-party → local (separated by blank lines)
-- All FastAPI routers defined in `apis/` and included in `main.py`
+- All FastAPI routers defined in `apis/` and included in `main.py` on the `api` app
+- `web.py` composes the deployed site: `/api/*` → API (root_path `/api`), legacy root API paths → API, everything else → the built React storefront (`frontend/dist`) with an `index.html` fallback
 - Use `APIRouter()` with descriptive tags for endpoint grouping
 
 ### Formatting & Naming
