@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:8000
+@baseUrl = http://localhost:8000/api
 @userId = cliente123
 
 ### Preparar el carrito: dos piezas de Star Fox a $1,199.20 MXN cada una (total $2,398.40 MXN)

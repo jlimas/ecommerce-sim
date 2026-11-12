@@ -1,7 +1,7 @@
 import type { CartItem, PaymentReceipt, PaymentRequest, Product, ProductQuery } from '@/lib/types'
 
-/** Base URL of the Arkanoid API. Empty means same origin (the Vite dev proxy). */
-export const API_BASE_URL: string = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+/** Base URL of the Arkanoid API. The backend serves it under /api on the same origin (proxied by Vite in dev). */
+export const API_BASE_URL: string = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 
 export class ApiError extends Error {
   readonly status: number

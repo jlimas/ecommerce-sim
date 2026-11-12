@@ -11,9 +11,23 @@ make install
 make run
 ```
 
-- API: `http://localhost:8000`
-- Documentación interactiva: `http://localhost:8000/docs`
-- Esquema OpenAPI: `http://localhost:8000/openapi.json`
+- API: `http://localhost:8000/api`
+- Documentación interactiva: `http://localhost:8000/api/docs`
+- Esquema OpenAPI: `http://localhost:8000/api/openapi.json`
+
+La API vive bajo `/api`. Las rutas anteriores en la raíz (`/products`, `/cart`, `/payments`, `/images`, `/openapi.json`, `/docs`) siguen respondiendo como alias para no romper integraciones existentes; las nuevas integraciones deben usar `/api`.
+
+### Tienda web (frontend)
+
+La tienda en React vive en `frontend/` (Vite, shadcn/ui, pnpm). Con la API corriendo:
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+Abre `http://localhost:5173`; el servidor de Vite reenvía `/api` a `http://localhost:8000` (cámbialo con `ARKANOID_API_URL`). Si existe `frontend/dist` (`pnpm build`), FastAPI sirve la tienda en `/` y la API en `/api`; sin ese directorio, `/` responde con la bienvenida de la API. `ARKANOID_FRONTEND_DIST` permite indicar otro directorio.
 
 El esquema incluye una guía para agentes e integraciones: flujo de compra, identificadores de operación estables, ejemplos de solicitudes y respuestas, reglas de moneda, errores, reintentos y el funcionamiento del PIN de prueba del pago. Puedes importar el archivo [openapi.json](openapi.json) en herramientas de agentes. Regénéralo con `make openapi` al cambiar rutas, modelos o documentación; las pruebas verifican que coincida con el esquema servido por la API.
 
@@ -88,4 +102,8 @@ make docker-build
 make docker-run
 ```
 
-La API queda disponible en `http://localhost:8000`.
+La imagen compila la tienda web y la sirve en `http://localhost:8000/`; la API queda en `http://localhost:8000/api`.
+
+## Despliegue
+
+Cada push a `main` se despliega en `https://arkanoid.store` a partir del `Dockerfile` (un solo contenedor en el puerto 8000). Antes de integrar a `main`, ejecuta `make test` y `make docker-build`.

@@ -245,6 +245,12 @@ def clean_query_string(raw: bytes) -> bytes:
     return urlencode(pairs).encode("latin-1")
 
 
+def _route_path(scope) -> str:
+    """Path without the mount prefix: `/api/products` (root_path `/api`) and legacy `/products` give `/products`."""
+    path, root_path = scope["path"], scope.get("root_path", "")
+    return path[len(root_path) :] if root_path and path.startswith(root_path) else path
+
+
 class ProductQueryCleanupMiddleware:
     """Descarta parámetros vacíos o `null` y normaliza alias y precios antes de validar la consulta."""
 
@@ -252,7 +258,7 @@ class ProductQueryCleanupMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send) -> None:
-        if scope["type"] == "http" and scope["path"].startswith("/products") and scope.get("query_string"):
+        if scope["type"] == "http" and _route_path(scope).startswith("/products") and scope.get("query_string"):
             raw = scope["query_string"]
             cleaned = clean_query_string(raw)
             if parse_qsl(cleaned.decode(), keep_blank_values=True) != parse_qsl(
