@@ -1,0 +1,6 @@
+export { PageHeader } from '@/components/shared/page-header'
+export { PriceTag } from '@/components/shared/price-tag'
+export { ProductCard } from '@/components/shared/product-card'
+export { ProductImage } from '@/components/shared/product-image'
+export { Container } from '@/components/shared/section'
+export { EmptyState, ErrorState } from '@/components/shared/status-states'
