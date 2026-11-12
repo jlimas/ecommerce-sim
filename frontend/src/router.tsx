@@ -2,29 +2,24 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 
 import { RootLayout } from '@/components/layout/root-layout'
 import { ROUTES } from '@/lib/site'
-import { CatalogPage } from '@/pages/catalog'
-import { CheckoutPage } from '@/pages/checkout'
-import { HistoryPage } from '@/pages/history'
-import { HomePage } from '@/pages/home'
-import { LocationsPage } from '@/pages/locations'
-import { NotFoundPage } from '@/pages/not-found'
-import { ProductDetailPage } from '@/pages/product-detail'
-import { ReturnsPage } from '@/pages/returns'
-import { ShippingPage } from '@/pages/shipping'
 
+// Each page is its own chunk, loaded on first navigation.
 export const routes: RouteObject[] = [
   {
     element: <RootLayout />,
     children: [
-      { path: ROUTES.home, element: <HomePage /> },
-      { path: ROUTES.catalog, element: <CatalogPage /> },
-      { path: `${ROUTES.catalog}/:productId`, element: <ProductDetailPage /> },
-      { path: ROUTES.checkout, element: <CheckoutPage /> },
-      { path: ROUTES.locations, element: <LocationsPage /> },
-      { path: ROUTES.shipping, element: <ShippingPage /> },
-      { path: ROUTES.returns, element: <ReturnsPage /> },
-      { path: ROUTES.history, element: <HistoryPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      { path: ROUTES.home, lazy: async () => ({ Component: (await import('@/pages/home')).HomePage }) },
+      { path: ROUTES.catalog, lazy: async () => ({ Component: (await import('@/pages/catalog')).CatalogPage }) },
+      {
+        path: `${ROUTES.catalog}/:productId`,
+        lazy: async () => ({ Component: (await import('@/pages/product-detail')).ProductDetailPage }),
+      },
+      { path: ROUTES.checkout, lazy: async () => ({ Component: (await import('@/pages/checkout')).CheckoutPage }) },
+      { path: ROUTES.locations, lazy: async () => ({ Component: (await import('@/pages/locations')).LocationsPage }) },
+      { path: ROUTES.shipping, lazy: async () => ({ Component: (await import('@/pages/shipping')).ShippingPage }) },
+      { path: ROUTES.returns, lazy: async () => ({ Component: (await import('@/pages/returns')).ReturnsPage }) },
+      { path: ROUTES.history, lazy: async () => ({ Component: (await import('@/pages/history')).HistoryPage }) },
+      { path: '*', lazy: async () => ({ Component: (await import('@/pages/not-found')).NotFoundPage }) },
     ],
   },
 ]
