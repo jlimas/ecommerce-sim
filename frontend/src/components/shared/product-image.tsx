@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export function ProductImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading')
   return (
-    <div className={cn('relative aspect-square overflow-hidden bg-muted', className)}>
+    <div className={cn('relative aspect-square overflow-hidden bg-muted p-3', className)}>
       {state === 'error' ? (
         <div className="absolute inset-0 grid place-items-center text-muted-foreground" role="img" aria-label={alt}>
           <ImageOff className="size-8" aria-hidden />
@@ -22,7 +22,7 @@ export function ProductImage({ src, alt, className }: { src: string; alt: string
           onLoad={() => setState('loaded')}
           onError={() => setState('error')}
           className={cn(
-            'size-full object-contain p-4 mix-blend-multiply transition-all duration-700 ease-out',
+            'size-full rounded-xl bg-white object-contain p-4 transition-all duration-700 ease-out',
             state === 'loaded' ? 'scale-100 opacity-100 blur-0' : 'scale-95 opacity-0 blur-sm',
           )}
         />
