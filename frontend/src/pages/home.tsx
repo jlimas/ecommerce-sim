@@ -1,6 +1,6 @@
-import { ArrowRight, Disc3, Gamepad2, Headphones, Trophy, Tv } from 'lucide-react'
+import { ArrowRight, Disc3, Gamepad2, Headphones, Play, Trophy, Tv } from 'lucide-react'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import { EASE_OUT, Reveal } from '@/components/motion/reveal'
@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/shared/product-card'
 import { Container } from '@/components/shared/section'
 import { ErrorState } from '@/components/shared/status-states'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAsync } from '@/hooks/use-async'
 import { api } from '@/lib/api'
@@ -21,6 +22,9 @@ import { STORES, StoreStatusBadge, getStoreStatus, useNow } from '@/pages/locati
  * ------------------------------------------------------------------------- */
 
 const HIGH_SCORE = 1_987_040
+
+// The playable game only loads when someone presses Play.
+const BreakoutGame = lazy(async () => ({ default: (await import('@/features/breakout/breakout-game')).BreakoutGame }))
 
 interface Brick {
   x: number
@@ -37,7 +41,7 @@ function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || 'white'
 }
 
-function BreakoutArena() {
+function BreakoutArena({ onPlay }: { onPlay: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scoreRef = useRef<HTMLSpanElement>(null)
   const reduceMotion = useReducedMotion()
@@ -239,13 +243,27 @@ function BreakoutArena() {
   }, [reduceMotion])
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-brand/30 bg-card/60 pixel-grid neon-glow">
+    <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-brand/30 bg-card/60 pixel-grid neon-glow">
       <canvas
         ref={canvasRef}
-        className="block size-full touch-none"
+        className="block size-full cursor-pointer touch-none"
         role="img"
         aria-label="Animación de bloques rompiéndose, estilo arcade"
+        onClick={onPlay}
       />
+      {/* Play prompt: appears on hover/focus, always visible on touch screens. */}
+      <div className="pointer-events-none absolute inset-0 grid place-items-center bg-background/0 transition-colors duration-300 group-hover:bg-background/45 group-focus-within:bg-background/45">
+        <motion.button
+          type="button"
+          onClick={onPlay}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          className="pointer-events-auto flex items-center gap-2 rounded-full bg-brand px-6 py-3 font-pixel text-sm text-brand-foreground uppercase opacity-0 shadow-[0_0_32px_-4px_var(--brand)] transition-opacity duration-300 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          <Play className="size-4 fill-current" aria-hidden />
+          Jugar
+        </motion.button>
+      </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between px-5 pt-4 font-pixel text-[11px] tracking-wider">
         <span className="text-brand">
           1UP <span ref={scoreRef}>000000</span>
@@ -253,7 +271,7 @@ function BreakoutArena() {
         <span className="text-glitch">HI {HIGH_SCORE.toLocaleString('en-US')}</span>
       </div>
       <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-muted-foreground">
-        Mueve el cursor o el dedo para controlar la paleta
+        Haz clic para jugar
       </p>
     </div>
   )
@@ -313,6 +331,7 @@ const headlineWord: Variants = {
 }
 
 function Hero() {
+  const [playing, setPlaying] = useState(false)
   return (
     <Container className="grid items-center gap-14 py-14 md:py-20 lg:grid-cols-[1.05fr_1fr]">
       <div>
@@ -361,9 +380,26 @@ function Hero() {
         </Reveal>
       </div>
       <Reveal delay={0.3} y={32} className="relative">
-        <BreakoutArena />
+        <BreakoutArena onPlay={() => setPlaying(true)} />
         <FloatingMascot />
       </Reveal>
+      <Dialog open={playing} onOpenChange={setPlaying}>
+        <DialogContent
+          className="max-h-[95svh] overflow-y-auto border-brand/30 sm:max-w-[520px]"
+          // The game focuses its canvas so arrows and Space reach it instead of the close button.
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="font-pixel tracking-wide text-brand uppercase">Arkanoid</DialogTitle>
+            <DialogDescription>
+              Cursor, dedo o flechas para mover la paleta. Espacio lanza y pausa; P también pausa.
+            </DialogDescription>
+          </DialogHeader>
+          <Suspense fallback={<Skeleton className="aspect-[4/5] w-full rounded-2xl" />}>
+            {playing && <BreakoutGame />}
+          </Suspense>
+        </DialogContent>
+      </Dialog>
     </Container>
   )
 }
