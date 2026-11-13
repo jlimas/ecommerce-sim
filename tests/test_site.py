@@ -1,3 +1,5 @@
+import html
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from data import CARTS
 from main import create_site
+from web import render_api_page
 
 INDEX_HTML = '<!doctype html><html><body><div id="root"></div></body></html>'
 
@@ -132,6 +135,52 @@ class SiteWithStorefrontTests(unittest.TestCase):
         self.assertEqual(self.client.get("/docs").status_code, 200)
         self.assertEqual(self.client.get("/products/detail").status_code, 404)
 
+    def test_browser_on_api_gets_prerendered_api_page(self) -> None:
+        for path in ("/api", "/api/"):
+            with self.subTest(path=path):
+                response = self.client.get(path, headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.headers["content-type"].startswith("text/html"))
+                self.assertEqual(response.headers["cache-control"], "no-cache")
+                page = response.text
+                self.assertIn('<div id="root"><main id="api-reference">', page)
+                self.assertIn("<code>GET /api/products</code>", page)
+                self.assertIn("<code>POST /api/payments/{user_id}</code>", page)
+                self.assertIn('href="/api/openapi.json"', page)
+                self.assertIn('href="/api/docs"', page)
+                self.assertIn('<pre id="openapi-spec">', page)
+                self.assertIn('"openapi": "3.', page)
+
+    def test_prerendered_spec_matches_served_schema(self) -> None:
+        page = self.client.get("/api", headers={"Accept": "text/html"}).text
+        spec_html = page.split('<pre id="openapi-spec">', 1)[1].split("</pre>", 1)[0]
+        self.assertEqual(json.loads(html.unescape(spec_html)), self.client.get("/api/openapi.json").json())
+
+    def test_api_clients_still_get_json_at_api_root(self) -> None:
+        for accept in ("*/*", "application/json", None):
+            with self.subTest(accept=accept):
+                headers = {"Accept": accept} if accept else {}
+                response = self.client.get("/api", headers=headers)
+                self.assertEqual(response.headers["content-type"], "application/json")
+                self.assertEqual(response.json()["openapiUrl"], "/api/openapi.json")
+
+    def test_only_api_root_is_negotiated(self) -> None:
+        response = self.client.get("/api/products?limit=1", headers={"Accept": "text/html"})
+        self.assertEqual(response.headers["content-type"], "application/json")
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(
+            self.client.get("/api/openapi.json", headers={"Accept": "text/html"}).json()["info"]["title"], "Arkanoid"
+        )
+
+    def test_other_storefront_pages_are_not_prerendered(self) -> None:
+        page = self.client.get("/catalogo", headers={"Accept": "text/html"}).text
+        self.assertNotIn("api-reference", page)
+
+    def test_api_page_rejects_writes_like_the_api(self) -> None:
+        response = self.client.post("/api", headers={"Accept": "text/html"})
+        self.assertEqual(response.headers["content-type"], "application/json")
+        self.assertEqual(response.status_code, 405)
+
 
 class SiteWithoutStorefrontTests(unittest.TestCase):
     """Local API-only runs (no `pnpm build`): the root keeps answering with the API."""
@@ -160,3 +209,27 @@ class SiteWithoutStorefrontTests(unittest.TestCase):
         client = TestClient(create_site(None))
         self.addCleanup(client.close)
         self.assertEqual(client.get("/").json()["openapiUrl"], "/openapi.json")
+
+    def test_browser_on_api_without_storefront_gets_json(self) -> None:
+        response = self.client.get("/api", headers={"Accept": "text/html"})
+        self.assertEqual(response.headers["content-type"], "application/json")
+
+
+class RenderApiPageTests(unittest.TestCase):
+    def test_escapes_schema_text(self) -> None:
+        schema = {
+            "openapi": "3.1.0",
+            "info": {"title": "<b>X</b>", "version": "1"},
+            "servers": [{"url": "/api"}],
+            "paths": {"/a": {"get": {"summary": "<script>alert(1)</script>", "operationId": "op"}}},
+        }
+        page = render_api_page(schema)
+        self.assertNotIn("<script>", page)
+        self.assertNotIn("<b>X</b>", page)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", page)
+        self.assertIn("<code>GET /api/a</code>", page)
+
+    def test_without_servers_uses_root_paths(self) -> None:
+        page = render_api_page({"info": {"title": "T", "version": "1"}, "paths": {"/a": {"post": {}}}})
+        self.assertIn("<code>POST /a</code>", page)
+        self.assertIn('href="/openapi.json"', page)

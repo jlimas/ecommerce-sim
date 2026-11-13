@@ -18,6 +18,7 @@ export const routes: RouteObject[] = [
       { path: ROUTES.locations, lazy: async () => ({ Component: (await import('@/pages/locations')).LocationsPage }) },
       { path: ROUTES.shipping, lazy: async () => ({ Component: (await import('@/pages/shipping')).ShippingPage }) },
       { path: ROUTES.returns, lazy: async () => ({ Component: (await import('@/pages/returns')).ReturnsPage }) },
+      { path: ROUTES.api, lazy: async () => ({ Component: (await import('@/pages/api-docs')).ApiDocsPage }) },
       { path: ROUTES.history, lazy: async () => ({ Component: (await import('@/pages/history')).HistoryPage }) },
       { path: '*', lazy: async () => ({ Component: (await import('@/pages/not-found')).NotFoundPage }) },
     ],

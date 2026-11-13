@@ -5,8 +5,18 @@
     <link rel="icon" type="image/png" href="/arkanoid-avatar.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arkanoid · Videojuegos y consolas</title>
+    <meta name="description" content="Arkanoid: consolas, videojuegos y accesorios en pesos mexicanos. API pública de la tienda en /api con esquema OpenAPI en /api/openapi.json." />
+    <!-- Machine-readable API discovery (RFC 8631): scrapers and agents find the OpenAPI spec from any page. -->
+    <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/api/openapi.json" />
+    <link rel="service-doc" type="text/html" href="/api/docs" />
+    <link rel="alternate" type="application/json" title="Arkanoid OpenAPI" href="/api/openapi.json" />
   </head>
   <body>
+    <noscript>
+      Arkanoid, tienda de videojuegos. API pública: <a href="/api">/api</a> ·
+      esquema OpenAPI: <a href="/api/openapi.json">/api/openapi.json</a> ·
+      documentación: <a href="/api/docs">/api/docs</a>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

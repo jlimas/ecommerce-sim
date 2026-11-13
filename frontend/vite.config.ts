@@ -15,7 +15,15 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: API_TARGET, changeOrigin: true },
+      '/api': {
+        target: API_TARGET,
+        changeOrigin: true,
+        // Mirror production: a browser navigating to /api gets the storefront's API page, clients get JSON.
+        bypass: (req) =>
+          /^\/api\/?(\?.*)?$/.test(req.url ?? '') && String(req.headers.accept ?? '').includes('text/html')
+            ? '/index.html'
+            : undefined,
+      },
     },
   },
   test: {
