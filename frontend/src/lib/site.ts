@@ -31,4 +31,6 @@ export const STORE = {
   tagline: 'Videojuegos, consolas y nostalgia desde 1987.',
   email: 'hola@arkanoid.mx',
   phone: '55 1987 0420',
+  /** Public OpenAPI schema; served by the backend, not by the client router. */
+  openApiUrl: 'https://arkanoid.store/openapi.json',
 } as const
