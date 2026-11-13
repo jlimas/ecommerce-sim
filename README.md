@@ -15,7 +15,7 @@ make run
 - Documentación interactiva: `http://localhost:8000/api/docs`
 - Esquema OpenAPI: `http://localhost:8000/api/openapi.json`
 
-La API vive bajo `/api`. Las rutas anteriores en la raíz (`/products`, `/cart`, `/payments`, `/images`, `/openapi.json`, `/docs`) siguen respondiendo como alias para no romper integraciones existentes; las nuevas integraciones deben usar `/api`.
+La API vive bajo `/api`. En el sitio desplegado, un navegador que abre `/api` recibe la página **API** de la tienda (referencia de endpoints y la especificación OpenAPI completa, también legible sin JavaScript para scrapers), mientras que los clientes que piden JSON reciben la bienvenida de la API. Todas las páginas declaran el esquema con `<link rel="service-desc" href="/api/openapi.json">`. Las rutas anteriores en la raíz (`/products`, `/cart`, `/payments`, `/images`, `/openapi.json`, `/docs`) siguen respondiendo como alias para no romper integraciones existentes; las nuevas integraciones deben usar `/api`.
 
 ### Tienda web (frontend)
 

@@ -26,7 +26,7 @@
 ### Imports & Structure
 - Organize imports: standard library → third-party → local (separated by blank lines)
 - All FastAPI routers defined in `apis/` and included in `main.py` on the `api` app
-- `web.py` composes the deployed site: `/api/*` → API (root_path `/api`), legacy root API paths → API, everything else → the built React storefront (`frontend/dist`) with an `index.html` fallback
+- `web.py` composes the deployed site: `/api/*` → API (root_path `/api`), legacy root API paths → API, everything else → the built React storefront (`frontend/dist`) with an `index.html` fallback. `GET /api` is content-negotiated: `Accept: text/html` gets the storefront's API page with the spec pre-rendered inside `#root` (`render_api_page`), other clients get the JSON welcome
 - Use `APIRouter()` with descriptive tags for endpoint grouping
 
 ### Formatting & Naming

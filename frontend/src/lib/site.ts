@@ -14,6 +14,8 @@ export const ROUTES = {
   shipping: '/envios',
   returns: '/devoluciones',
   history: '/historia',
+  /** Same path as the API prefix: browsers get this page, API clients get JSON (see web.py). */
+  api: '/api',
 } as const
 
 export const PRIMARY_NAV: NavLink[] = [
@@ -21,6 +23,7 @@ export const PRIMARY_NAV: NavLink[] = [
   { to: ROUTES.locations, label: 'Ubicaciones' },
   { to: ROUTES.shipping, label: 'Envíos' },
   { to: ROUTES.returns, label: 'Devoluciones' },
+  { to: ROUTES.api, label: 'API' },
 ]
 
 /** The store history is intentionally low-key: only linked from the footer fine print. */
@@ -31,6 +34,4 @@ export const STORE = {
   tagline: 'Videojuegos, consolas y nostalgia desde 1987.',
   email: 'hola@arkanoid.mx',
   phone: '55 1987 0420',
-  /** Public OpenAPI schema; served by the backend, not by the client router. */
-  openApiUrl: 'https://arkanoid.store/openapi.json',
 } as const

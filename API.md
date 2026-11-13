@@ -4,7 +4,7 @@
 - **Moneda:** pesos mexicanos (`MXN`) en todos los precios e importes.
 - **Esquema completo:** `/api/openapi.json` · **Documentación interactiva:** `/api/docs`
 
-Las rutas de este documento son relativas a la URL base. Las rutas anteriores sin `/api` siguen funcionando como alias.
+Las rutas de este documento son relativas a la URL base. En el navegador, `https://arkanoid.store/api` muestra la referencia de la API con la especificación OpenAPI completa. Las rutas anteriores sin `/api` siguen funcionando como alias.
 
 El esquema OpenAPI es el contrato de integración principal. Incluye instrucciones de uso, ejemplos nombrados, esquemas de errores y reglas de reintento para cada operación. También está disponible como archivo `openapi.json` en el repositorio; se genera con `make openapi`.
 

@@ -11,7 +11,7 @@ from apis import cart, payments, products
 from app_logging import configure_logging, log_http_exception, log_validation_error
 from catalog_query import ProductQueryCleanupMiddleware
 from models import RootResponse
-from web import ArkanoidSite, SinglePageApp
+from web import ArkanoidSite, SinglePageApp, render_api_page
 
 BASE_DIR = Path(__file__).resolve().parent
 API_PREFIX = "/api"
@@ -83,7 +83,9 @@ def frontend_dist() -> Path:
 def create_site(frontend_dir: Path | None) -> ArkanoidSite:
     """Serves the storefront at / and the API at /api. Without a built storefront, / falls back to the API."""
     frontend = SinglePageApp(frontend_dir) if frontend_dir and (frontend_dir / "index.html").is_file() else None
-    return ArkanoidSite(api=api, frontend=frontend, api_prefix=API_PREFIX)
+    return ArkanoidSite(
+        api=api, frontend=frontend, api_prefix=API_PREFIX, api_page=lambda: render_api_page(api.openapi())
+    )
 
 
 # ASGI entry point used by uvicorn (`uvicorn main:app`).
