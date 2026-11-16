@@ -17,25 +17,44 @@
   --yalo-chat-header-background: var(--secondary);
   --yalo-chat-header-color: var(--foreground);
   --yalo-chat-header-border-radius: 0;
+  --yalo-chat-header-border-bottom: 1px solid var(--border);
+  --yalo-chat-header-watermark-color: var(--muted-foreground);
   --yalo-chat-close-btn-color: var(--foreground);
   --yalo-chat-spinner-color: var(--brand);
   --yalo-chat-dot-color: var(--muted-foreground);
+  --yalo-chat-message-list-scrollbar-color: var(--input);
+  --yalo-chat-input-scrollbar-color: var(--input);
 
   --yalo-chat-assistant-message-color: var(--card-foreground);
   --yalo-chat-user-message-background: var(--brand);
   --yalo-chat-user-message-color: var(--brand-foreground);
+  /* SDK defaults are dark red text, unreadable on the dark card. */
+  --yalo-chat-user-message-error-color: var(--destructive);
+  --yalo-chat-user-message-error-text-color: var(--destructive);
   --yalo-chat-message-footer-color: var(--muted-foreground);
   --yalo-chat-link-button-color: var(--brand);
 
   --yalo-chat-buttons-background: var(--muted);
   --yalo-chat-buttons-hover-background: var(--secondary);
+  --yalo-chat-buttons-selected-background: var(--secondary);
+  --yalo-chat-buttons-selected-color: var(--brand);
   --yalo-chat-buttons-border-color: var(--input);
   --yalo-chat-buttons-color: var(--foreground);
+  --yalo-chat-feedback-button-color: var(--muted-foreground);
+  --yalo-chat-feedback-button-selected-color: var(--brand);
+  --yalo-chat-feedback-button-hover-background: var(--secondary);
+  --yalo-chat-feedback-button-selected-background: var(--secondary);
+  --yalo-chat-quick-replies-border: 1px solid var(--border);
   --yalo-chat-quick-replies-chip-background: var(--muted);
   --yalo-chat-quick-replies-chip-hover-background: var(--secondary);
   --yalo-chat-quick-replies-chip-border-color: var(--input);
   --yalo-chat-quick-replies-chip-color: var(--foreground);
 
+  /* SDK defaults draw light (#e8e8e8) footer borders; keep only a subtle top divider. */
+  --yalo-chat-footer-border-top: 1px solid var(--border);
+  --yalo-chat-footer-border-right: none;
+  --yalo-chat-footer-border-bottom: none;
+  --yalo-chat-footer-border-left: none;
   /* Same width as the focus state so focusing does not shift the layout. */
   --yalo-chat-input-border: 2px solid var(--input);
   --yalo-chat-input-placeholder-color: var(--muted-foreground);
