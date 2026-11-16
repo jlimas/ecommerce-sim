@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { PageTransition } from '@/components/motion/page-transition'
 import { Toaster } from '@/components/ui/sonner'
 import { CartSheet } from '@/features/cart/cart-sheet'
+import { ChatWidget } from '@/features/chat/chat-widget'
 
 export function RootLayout() {
   const location = useLocation()
@@ -31,7 +32,9 @@ export function RootLayout() {
         </main>
         <SiteFooter />
         <CartSheet />
-        <Toaster position="bottom-right" />
+        <ChatWidget />
+        {/* Offset keeps toasts above the floating chat launcher. */}
+        <Toaster position="bottom-right" offset={{ bottom: 96 }} mobileOffset={{ bottom: 96 }} />
       </div>
     </MotionConfig>
   )
