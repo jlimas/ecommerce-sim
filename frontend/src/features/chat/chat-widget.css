@@ -1,0 +1,104 @@
+/*
+ * Theme for the Yalo chat web component. Its internals live in a shadow DOM, so the only supported
+ * styling hooks are its --yalo-chat-* custom properties (they inherit through the shadow boundary).
+ * Values map the SDK onto the storefront's dark theme tokens.
+ */
+#yalo-chat {
+  /* Fill the panel. The SDK default (auto) grows with the messages and pushes the input out of view. */
+  --yalo-chat-width: 100%;
+  --yalo-chat-height: 100%;
+  --yalo-chat-corner-radius: 0;
+
+  --yalo-chat-font: var(--font-sans);
+  /* Inherited by text the SDK leaves uncolored, such as what the user types. */
+  color: var(--foreground);
+
+  --yalo-chat-background: var(--card);
+  --yalo-chat-header-background: var(--secondary);
+  --yalo-chat-header-color: var(--foreground);
+  --yalo-chat-header-border-radius: 0;
+  --yalo-chat-header-border-bottom: 1px solid var(--border);
+  --yalo-chat-header-watermark-color: var(--muted-foreground);
+  --yalo-chat-close-btn-color: var(--foreground);
+  --yalo-chat-spinner-color: var(--brand);
+  --yalo-chat-dot-color: var(--muted-foreground);
+  --yalo-chat-message-list-scrollbar-color: var(--input);
+  --yalo-chat-input-scrollbar-color: var(--input);
+
+  --yalo-chat-assistant-message-color: var(--card-foreground);
+  --yalo-chat-user-message-background: var(--brand);
+  --yalo-chat-user-message-color: var(--brand-foreground);
+  /* SDK defaults are dark red text, unreadable on the dark card. */
+  --yalo-chat-user-message-error-color: var(--destructive);
+  --yalo-chat-user-message-error-text-color: var(--destructive);
+  --yalo-chat-message-footer-color: var(--muted-foreground);
+  --yalo-chat-link-button-color: var(--brand);
+
+  --yalo-chat-buttons-background: var(--muted);
+  --yalo-chat-buttons-hover-background: var(--secondary);
+  --yalo-chat-buttons-selected-background: var(--secondary);
+  --yalo-chat-buttons-selected-color: var(--brand);
+  --yalo-chat-buttons-border-color: var(--input);
+  --yalo-chat-buttons-color: var(--foreground);
+  --yalo-chat-feedback-button-color: var(--muted-foreground);
+  --yalo-chat-feedback-button-selected-color: var(--brand);
+  --yalo-chat-feedback-button-hover-background: var(--secondary);
+  --yalo-chat-feedback-button-selected-background: var(--secondary);
+  --yalo-chat-quick-replies-border: 1px solid var(--border);
+  --yalo-chat-quick-replies-chip-background: var(--muted);
+  --yalo-chat-quick-replies-chip-hover-background: var(--secondary);
+  --yalo-chat-quick-replies-chip-border-color: var(--input);
+  --yalo-chat-quick-replies-chip-color: var(--foreground);
+
+  /* SDK defaults draw light (#e8e8e8) footer borders; keep only a subtle top divider. */
+  --yalo-chat-footer-border-top: 1px solid var(--border);
+  --yalo-chat-footer-border-right: none;
+  --yalo-chat-footer-border-bottom: none;
+  --yalo-chat-footer-border-left: none;
+  /* Same width as the focus state so focusing does not shift the layout. */
+  --yalo-chat-input-border: 2px solid var(--input);
+  --yalo-chat-input-placeholder-color: var(--muted-foreground);
+  --yalo-chat-send-btn-background: var(--brand);
+  --yalo-chat-send-btn-color: var(--brand-foreground);
+  --yalo-chat-attachment-button-color: var(--muted-foreground);
+  --yalo-chat-attachment-icon-color: var(--muted-foreground);
+  --yalo-chat-play-button-color: var(--brand);
+  --yalo-chat-waveform-timer-color: var(--muted-foreground);
+  --yalo-chat-waveform-close-button-color: var(--foreground);
+
+  --yalo-chat-product-message-card-background: var(--muted);
+  --yalo-chat-product-message-card-border-color: var(--border);
+  --yalo-chat-product-message-expand-color: var(--brand);
+  --yalo-chat-product-title-color: var(--foreground);
+  --yalo-chat-product-subunits-color: var(--muted-foreground);
+  --yalo-chat-product-price-background: var(--secondary);
+  --yalo-chat-product-price-color: var(--foreground);
+  --yalo-chat-product-price-sale-color: var(--brand);
+  --yalo-chat-product-price-strike-color: var(--muted-foreground);
+  --yalo-chat-product-price-per-subunit-color: var(--muted-foreground);
+  --yalo-chat-product-card-button-background: var(--brand);
+  --yalo-chat-product-card-button-color: var(--brand-foreground);
+  --yalo-chat-product-card-button-border: 1px solid var(--brand);
+  --yalo-chat-product-card-button-background-clicked: var(--secondary);
+  --yalo-chat-product-card-button-color-clicked: var(--foreground);
+  --yalo-chat-product-confirmation-title-color: var(--foreground);
+  --yalo-chat-product-confirmation-body-color: var(--card-foreground);
+  --yalo-chat-product-confirmation-footer-color: var(--muted-foreground);
+  --yalo-chat-product-confirmation-button-background: var(--brand);
+  --yalo-chat-product-confirmation-button-color: var(--brand-foreground);
+  --yalo-chat-product-confirmation-button-border: 1px solid var(--brand);
+  --yalo-chat-product-confirmation-button-background-clicked: var(--secondary);
+  --yalo-chat-product-confirmation-button-color-clicked: var(--foreground);
+  --yalo-chat-numeric-border-color: var(--input);
+  --yalo-chat-numeric-text-color: var(--foreground);
+  --yalo-chat-numeric-icon-color: var(--foreground);
+  --yalo-chat-numeric-button-hover-background: var(--secondary);
+}
+
+/*
+ * The SDK removes the input outline and exposes no focus hook. :focus-within matches across the
+ * shadow boundary, so the input border lights up while focus is anywhere inside the chat.
+ */
+#yalo-chat:focus-within {
+  --yalo-chat-input-border: 2px solid var(--ring);
+}
