@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+import './chat-widget.css'
+
 import { CHAT_TARGET_ID, loadYaloSdk, YALO_CHAT_CONFIG, type YaloChatClient } from './yalo-sdk'
 
 type Status = 'idle' | 'loading' | 'ready'

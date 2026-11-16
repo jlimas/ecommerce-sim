@@ -5,7 +5,10 @@ export const YALO_SDK_URL = 'https://chat-sdk-staging.yalochat.com/v1.0.0/sdk.js
 export const YALO_CHAT_CONFIG = {
   channelId: 'e97803a9-8854-4ae8-9220-f8bd71ab5abd',
   organizationId: '1000000220',
-  channelName: 'guia-arkanoid-qxmnux',
+  // The SDK only uses channelName as the header title, so it carries the display name.
+  channelName: 'Guía Arkanoid',
+  image: '/arkanoid-avatar.png',
+  locale: 'es-MX',
 } as const
 
 /** id of the container the chat window renders inside */
@@ -14,7 +17,12 @@ export const CHAT_TARGET_ID = 'yalo-chat'
 export interface YaloChatClientConfig {
   channelId: string
   organizationId: string
+  /** header title */
   channelName: string
+  /** header avatar URL */
+  image?: string
+  /** UI language; the SDK ships en, es, es-MX, pt, pt-BR, ar, zh, zh-CN */
+  locale?: 'en' | 'es' | 'es-MX' | 'pt' | 'pt-BR' | 'ar' | 'zh' | 'zh-CN'
   /** id of the element the chat window renders inside */
   target: string
 }
