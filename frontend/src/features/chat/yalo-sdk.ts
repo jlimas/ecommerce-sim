@@ -2,16 +2,16 @@
 // Docs: https://github.com/yalochat/chat-sdk/blob/main/web-sdk/README.md
 
 /*
- * The backend host is baked into each bundle: the staging CDN talks to api-staging2.yalochat.com,
- * where this channel lives. Switching to chat-sdk.yalochat.com also requires a production channel.
+ * The backend host is baked into each bundle: the production CDN talks to api2-ww-us-001.yalochat.com,
+ * where this channel lives. Switching to chat-sdk-staging.yalochat.com also requires a staging channel.
  * The version is pinned so the Subresource Integrity hash (published at `${url}.sri`) stays valid.
  */
-export const YALO_SDK_URL = 'https://chat-sdk-staging.yalochat.com/v1.8.0/sdk.js'
-export const YALO_SDK_INTEGRITY = 'sha384-BYabMeYfoqP/jWV0/L17l17XgrPyRyZ8I1pcLAdHRsK7CywPWuYcbx/su910m3U6'
+export const YALO_SDK_URL = 'https://chat-sdk.yalochat.com/v1.8.0/sdk.js'
+export const YALO_SDK_INTEGRITY = 'sha384-YvooGEe5YfB4jLsSRnNSLWAlaDuFkigqlYYDofh9zj97B5MlXCPT3jwHQYjug5Z4'
 
 export const YALO_CHAT_CONFIG = {
-  channelId: 'e97803a9-8854-4ae8-9220-f8bd71ab5abd',
-  organizationId: '1000000220',
+  channelId: 'eab4ea6a-7a1d-4e1c-af91-5d918d397eb8',
+  organizationId: '1000000235',
   // The SDK only uses channelName as the header title, so it carries the display name.
   channelName: 'Guía Arkanoid',
   image: '/arkanoid-avatar.png',
