@@ -43,9 +43,9 @@ describe('loadYaloSdk', () => {
     retry.catch(() => {})
   })
 
-  it('defaults to the pinned staging bundle with its SRI hash', () => {
+  it('defaults to the pinned production bundle with its SRI hash', () => {
     loadYaloSdk().catch(() => {})
-    expect(YALO_SDK_URL).toMatch(/^https:\/\/chat-sdk-staging\.yalochat\.com\/v\d+\.\d+\.\d+\/sdk\.js$/)
+    expect(YALO_SDK_URL).toMatch(/^https:\/\/chat-sdk\.yalochat\.com\/v\d+\.\d+\.\d+\/sdk\.js$/)
     expect(sdkScripts()[0].src).toBe(YALO_SDK_URL)
     expect(sdkScripts()[0].integrity).toMatch(/^sha384-/)
   })
